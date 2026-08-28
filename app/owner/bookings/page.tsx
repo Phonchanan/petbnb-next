@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /* eslint-disable @next/next/no-location-assign-relative-destination */
 /* eslint-disable react-hooks/set-state-in-effect */
+
 'use client';
 
 import {
@@ -9,12 +10,13 @@ import {
   useState,
 } from 'react';
 
+import Link from 'next/link';
+
 import {
   CalendarDays,
   CheckCircle2,
   Clock3,
   Loader2,
-  MapPin,
   PawPrint,
   ReceiptText,
   XCircle,
@@ -31,151 +33,250 @@ import {
   type BookingStatus,
 } from '@/lib/supabase/bookingService';
 
+/* =========================================================
+ * OWNER BOOKINGS PAGE
+ * ======================================================= */
+
 export default function OwnerBookingsPage() {
-  const [profile, setProfile] =
-    useState<CurrentProfile | null>(null);
+  const [
+    profile,
+    setProfile,
+  ] =
+    useState<CurrentProfile | null>(
+      null
+    );
 
-  const [bookings, setBookings] =
-    useState<Booking[]>([]);
+  const [
+    bookings,
+    setBookings,
+  ] =
+    useState<Booking[]>(
+      []
+    );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [actionLoadingId, setActionLoadingId] =
-    useState<string | null>(null);
+  const [
+    actionLoadingId,
+    setActionLoadingId,
+  ] =
+    useState<string | null>(
+      null
+    );
 
-  const [error, setError] =
-    useState('');
+  const [
+    error,
+    setError,
+  ] = useState('');
 
-  const [message, setMessage] =
-    useState('');
+  const [
+    message,
+    setMessage,
+  ] = useState('');
 
-  const [statusFilter, setStatusFilter] =
-    useState<'ALL' | BookingStatus>('ALL');
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] =
+    useState<
+      'ALL' | BookingStatus
+    >('ALL');
 
-  const loadBookings = async () => {
-    try {
-      setLoading(true);
-      setError('');
+  /* =======================================================
+   * LOAD BOOKINGS
+   * ===================================================== */
 
-      const current =
-        await AuthService.getCurrentProfile();
-
-      if (!current) {
-        window.location.href = '/login';
-        return;
-      }
-
-      if (!current.is_active) {
-        await AuthService.signOut();
-        window.location.href = '/login';
-        return;
-      }
-
-      if (
-        current.role.toUpperCase() !== 'OWNER'
-      ) {
-        if (
-          current.role.toUpperCase() === 'SITTER'
-        ) {
-          window.location.href = '/sitter';
-        } else {
-          window.location.href = '/admin';
-        }
-
-        return;
-      }
-
-      setProfile(current);
-
-      const data =
-        await BookingService.getBookingsByOwner(
-          current.id
+  const loadBookings =
+    async () => {
+      try {
+        setLoading(
+          true
         );
 
-      setBookings(data);
-    } catch (err) {
-      console.error(
-        'LOAD OWNER BOOKINGS ERROR:',
-        err
-      );
+        setError(
+          ''
+        );
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'ไม่สามารถโหลดรายการจองได้'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        const current =
+          await AuthService.getCurrentProfile();
+
+        if (!current) {
+          window.location.href =
+            '/login';
+
+          return;
+        }
+
+        if (
+          !current.is_active
+        ) {
+          await AuthService.signOut();
+
+          window.location.href =
+            '/login';
+
+          return;
+        }
+
+        if (
+          current.role.toUpperCase() !==
+          'OWNER'
+        ) {
+          if (
+            current.role.toUpperCase() ===
+            'SITTER'
+          ) {
+            window.location.href =
+              '/sitter';
+          } else {
+            window.location.href =
+              '/admin';
+          }
+
+          return;
+        }
+
+        setProfile(
+          current
+        );
+
+        const data =
+          await BookingService.getBookingsByOwner(
+            current.id
+          );
+
+        setBookings(
+          data
+        );
+      } catch (err) {
+        console.error(
+          'LOAD OWNER BOOKINGS ERROR:',
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถโหลดรายการจองได้'
+        );
+      } finally {
+        setLoading(
+          false
+        );
+      }
+    };
+
+  /* =======================================================
+   * INITIAL LOAD
+   * ===================================================== */
 
   useEffect(() => {
-    loadBookings();
+    void loadBookings();
   }, []);
 
+  /* =======================================================
+   * FILTER
+   * ===================================================== */
+
   const filteredBookings =
-    useMemo(() => {
-      if (statusFilter === 'ALL') {
-        return bookings;
+    useMemo(
+      () => {
+        if (
+          statusFilter ===
+          'ALL'
+        ) {
+          return bookings;
+        }
+
+        return bookings.filter(
+          (booking) =>
+            booking.status ===
+            statusFilter
+        );
+      },
+      [
+        bookings,
+        statusFilter,
+      ]
+    );
+
+  /* =======================================================
+   * CANCEL BOOKING
+   * ===================================================== */
+
+  const handleCancel =
+    async (
+      booking: Booking
+    ) => {
+      if (
+        booking.status !==
+          'PENDING' &&
+        booking.status !==
+          'CONFIRMED'
+      ) {
+        return;
       }
 
-      return bookings.filter(
-        (booking) =>
-          booking.status === statusFilter
-      );
-    }, [bookings, statusFilter]);
+      const confirmed =
+        window.confirm(
+          `ต้องการยกเลิกการจอง ${
+            booking.bookingCode ||
+            ''
+          } ใช่หรือไม่?`
+        );
 
-  const handleCancel = async (
-    booking: Booking
-  ) => {
-    if (
-      booking.status !== 'PENDING' &&
-      booking.status !== 'CONFIRMED'
-    ) {
-      return;
-    }
+      if (
+        !confirmed
+      ) {
+        return;
+      }
 
-    const confirmed =
-      window.confirm(
-        `ต้องการยกเลิกการจอง ${
-          booking.bookingCode || ''
-        } ใช่หรือไม่?`
-      );
+      try {
+        setActionLoadingId(
+          booking.id
+        );
 
-    if (!confirmed) {
-      return;
-    }
+        setError(
+          ''
+        );
 
-    try {
-      setActionLoadingId(booking.id);
-      setError('');
-      setMessage('');
+        setMessage(
+          ''
+        );
 
-      await BookingService.cancelBooking(
-        booking.id
-      );
+        await BookingService.cancelBooking(
+          booking.id
+        );
 
-      setMessage(
-        'ยกเลิกการจองเรียบร้อยแล้ว'
-      );
+        setMessage(
+          'ยกเลิกการจองเรียบร้อยแล้ว'
+        );
 
-      await loadBookings();
-    } catch (err) {
-      console.error(
-        'CANCEL BOOKING ERROR:',
-        err
-      );
+        await loadBookings();
+      } catch (err) {
+        console.error(
+          'CANCEL BOOKING ERROR:',
+          err
+        );
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'ไม่สามารถยกเลิกการจองได้'
-      );
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถยกเลิกการจองได้'
+        );
+      } finally {
+        setActionLoadingId(
+          null
+        );
+      }
+    };
+
+  /* =======================================================
+   * LOADING
+   * ===================================================== */
 
   if (loading) {
     return (
@@ -195,11 +296,20 @@ export default function OwnerBookingsPage() {
     return null;
   }
 
+  /* =======================================================
+   * PAGE
+   * ===================================================== */
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+      {/* =================================================
+       * HEADER
+       * =============================================== */}
+
       <section className="mb-6 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
           <CalendarDays className="h-3.5 w-3.5" />
+
           My Bookings
         </div>
 
@@ -213,12 +323,21 @@ export default function OwnerBookingsPage() {
         </p>
       </section>
 
+      {/* =================================================
+       * SUCCESS MESSAGE
+       * =============================================== */}
+
       {message && (
         <div className="mb-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700">
           <CheckCircle2 className="h-4 w-4" />
+
           {message}
         </div>
       )}
+
+      {/* =================================================
+       * ERROR MESSAGE
+       * =============================================== */}
 
       {error && (
         <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
@@ -226,77 +345,109 @@ export default function OwnerBookingsPage() {
         </div>
       )}
 
+      {/* =================================================
+       * FILTER
+       * =============================================== */}
+
       <section className="mb-5 flex gap-2 overflow-x-auto pb-1">
         <FilterButton
           label="ทั้งหมด"
-          active={statusFilter === 'ALL'}
+          active={
+            statusFilter ===
+            'ALL'
+          }
           onClick={() =>
-            setStatusFilter('ALL')
+            setStatusFilter(
+              'ALL'
+            )
           }
         />
 
         <FilterButton
           label="รอดำเนินการ"
           active={
-            statusFilter === 'PENDING'
+            statusFilter ===
+            'PENDING'
           }
           onClick={() =>
-            setStatusFilter('PENDING')
+            setStatusFilter(
+              'PENDING'
+            )
           }
         />
 
         <FilterButton
           label="ยืนยันแล้ว"
           active={
-            statusFilter === 'CONFIRMED'
+            statusFilter ===
+            'CONFIRMED'
           }
           onClick={() =>
-            setStatusFilter('CONFIRMED')
+            setStatusFilter(
+              'CONFIRMED'
+            )
           }
         />
 
         <FilterButton
           label="กำลังให้บริการ"
           active={
-            statusFilter === 'IN_PROGRESS'
+            statusFilter ===
+            'IN_PROGRESS'
           }
           onClick={() =>
-            setStatusFilter('IN_PROGRESS')
+            setStatusFilter(
+              'IN_PROGRESS'
+            )
           }
         />
 
         <FilterButton
           label="เสร็จสิ้น"
           active={
-            statusFilter === 'COMPLETED'
+            statusFilter ===
+            'COMPLETED'
           }
           onClick={() =>
-            setStatusFilter('COMPLETED')
+            setStatusFilter(
+              'COMPLETED'
+            )
           }
         />
 
         <FilterButton
           label="ถูกปฏิเสธ"
           active={
-            statusFilter === 'REJECTED'
+            statusFilter ===
+            'REJECTED'
           }
           onClick={() =>
-            setStatusFilter('REJECTED')
+            setStatusFilter(
+              'REJECTED'
+            )
           }
         />
 
         <FilterButton
           label="ยกเลิก"
           active={
-            statusFilter === 'CANCELLED'
+            statusFilter ===
+            'CANCELLED'
           }
           onClick={() =>
-            setStatusFilter('CANCELLED')
+            setStatusFilter(
+              'CANCELLED'
+            )
           }
         />
       </section>
 
-      {filteredBookings.length === 0 ? (
+      {/* =================================================
+       * EMPTY
+       * =============================================== */}
+
+      {filteredBookings.length ===
+      0 ? (
         <section className="rounded-[30px] border border-dashed border-purple-200 bg-white p-12 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-purple-100 text-purple-600">
             <CalendarDays className="h-8 w-8" />
@@ -311,6 +462,10 @@ export default function OwnerBookingsPage() {
           </p>
         </section>
       ) : (
+        /* =================================================
+         * BOOKING LIST
+         * =============================================== */
+
         <section className="space-y-5">
           {filteredBookings.map(
             (booking) => {
@@ -327,11 +482,19 @@ export default function OwnerBookingsPage() {
 
               return (
                 <article
-                  key={booking.id}
+                  key={
+                    booking.id
+                  }
                   className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm"
                 >
+                  {/* =========================================
+                   * BOOKING BODY
+                   * ======================================= */}
+
                   <div className="p-5 sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      {/* LEFT */}
+
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-black text-purple-950">
@@ -342,7 +505,9 @@ export default function OwnerBookingsPage() {
                           <span
                             className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusInfo.className}`}
                           >
-                            {statusInfo.label}
+                            {
+                              statusInfo.label
+                            }
                           </span>
                         </div>
 
@@ -353,6 +518,8 @@ export default function OwnerBookingsPage() {
                           )}
                         </p>
                       </div>
+
+                      {/* PRICE */}
 
                       <div className="text-left sm:text-right">
                         <div className="text-[10px] font-bold text-slate-400">
@@ -367,6 +534,10 @@ export default function OwnerBookingsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* =====================================
+                     * BOOKING INFORMATION
+                     * =================================== */}
 
                     <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <InfoCard
@@ -387,7 +558,8 @@ export default function OwnerBookingsPage() {
                         }
                         label="จำนวนสัตว์"
                         value={`${
-                          booking.petCount ?? 1
+                          booking.petCount ??
+                          1
                         } ตัว`}
                       />
 
@@ -417,9 +589,15 @@ export default function OwnerBookingsPage() {
                       />
                     </div>
 
-                    {(booking.ownerNote ||
+                    {/* =====================================
+                     * NOTES
+                     * =================================== */}
+
+                    {(
+                      booking.ownerNote ||
                       booking.sitterNote ||
-                      booking.rejectionReason) && (
+                      booking.rejectionReason
+                    ) && (
                       <div className="mt-5 space-y-3 rounded-2xl bg-[#FAF7FE] p-4 text-xs">
                         {booking.ownerNote && (
                           <DetailRow
@@ -452,36 +630,66 @@ export default function OwnerBookingsPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2 border-t border-purple-50 bg-[#FAF7FE]/60 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-[10px] text-slate-400">
-                      Booking ID:{' '}
-                      {booking.id}
-                    </div>
+                  {/* =========================================
+                   * FOOTER
+                   * ======================================= */}
 
-                    {canCancel && (
-                      <button
-                        type="button"
-                        disabled={
-                          actionLoadingId ===
+                  <div className="flex flex-col gap-3 border-t border-purple-50 bg-[#FAF7FE]/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 text-[10px] text-slate-400">
+                      <span className="font-bold">
+                        Booking ID:{' '}
+                      </span>
+
+                      <span className="break-all">
+                        {
                           booking.id
                         }
-                        onClick={() =>
-                          handleCancel(
-                            booking
-                          )
-                        }
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-xs font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {actionLoadingId ===
-                        booking.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5" />
-                        )}
+                      </span>
+                    </div>
 
-                        ยกเลิกการจอง
-                      </button>
-                    )}
+                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                      {/* =====================================
+                       * DETAIL BUTTON
+                       * =================================== */}
+
+                      <Link
+                        href={`/owner/bookings/${booking.id}`}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
+                      >
+                        <ReceiptText className="h-3.5 w-3.5" />
+
+                        ดูรายละเอียด
+                      </Link>
+
+                      {/* =====================================
+                       * CANCEL BUTTON
+                       * =================================== */}
+
+                      {canCancel && (
+                        <button
+                          type="button"
+                          disabled={
+                            actionLoadingId ===
+                            booking.id
+                          }
+                          onClick={() =>
+                            void handleCancel(
+                              booking
+                            )
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-xs font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {actionLoadingId ===
+                          booking.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <XCircle className="h-3.5 w-3.5" />
+                          )}
+
+                          ยกเลิกการจอง
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </article>
               );
@@ -492,6 +700,10 @@ export default function OwnerBookingsPage() {
     </main>
   );
 }
+
+/* =========================================================
+ * FILTER BUTTON
+ * ======================================================= */
 
 function FilterButton({
   label,
@@ -505,7 +717,9 @@ function FilterButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={
+        onClick
+      }
       className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${
         active
           ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
@@ -517,12 +731,17 @@ function FilterButton({
   );
 }
 
+/* =========================================================
+ * INFO CARD
+ * ======================================================= */
+
 function InfoCard({
   icon,
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon:
+    React.ReactNode;
   label: string;
   value: string;
 }) {
@@ -542,6 +761,10 @@ function InfoCard({
     </div>
   );
 }
+
+/* =========================================================
+ * DETAIL ROW
+ * ======================================================= */
 
 function DetailRow({
   label,
@@ -577,60 +800,82 @@ function DetailRow({
   );
 }
 
+/* =========================================================
+ * STATUS
+ * ======================================================= */
+
 function getStatusInfo(
   status: BookingStatus
 ) {
   switch (status) {
     case 'PENDING':
       return {
-        label: 'รอดำเนินการ',
+        label:
+          'รอดำเนินการ',
+
         className:
           'bg-amber-100 text-amber-700',
       };
 
     case 'CONFIRMED':
       return {
-        label: 'ยืนยันแล้ว',
+        label:
+          'ยืนยันแล้ว',
+
         className:
           'bg-blue-100 text-blue-700',
       };
 
     case 'IN_PROGRESS':
       return {
-        label: 'กำลังให้บริการ',
+        label:
+          'กำลังให้บริการ',
+
         className:
           'bg-purple-100 text-purple-700',
       };
 
     case 'COMPLETED':
       return {
-        label: 'เสร็จสิ้น',
+        label:
+          'เสร็จสิ้น',
+
         className:
           'bg-emerald-100 text-emerald-700',
       };
 
     case 'REJECTED':
       return {
-        label: 'ถูกปฏิเสธ',
+        label:
+          'ถูกปฏิเสธ',
+
         className:
           'bg-rose-100 text-rose-700',
       };
 
     case 'CANCELLED':
       return {
-        label: 'ยกเลิกแล้ว',
+        label:
+          'ยกเลิกแล้ว',
+
         className:
           'bg-slate-100 text-slate-600',
       };
 
     default:
       return {
-        label: status,
+        label:
+          status,
+
         className:
           'bg-slate-100 text-slate-600',
       };
   }
 }
+
+/* =========================================================
+ * MONEY
+ * ======================================================= */
 
 function formatMoney(
   value: number
@@ -638,21 +883,37 @@ function formatMoney(
   return new Intl.NumberFormat(
     'th-TH',
     {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      minimumFractionDigits:
+        0,
+
+      maximumFractionDigits:
+        2,
     }
-  ).format(value);
+  ).format(
+    Number.isFinite(
+      value
+    )
+      ? value
+      : 0
+  );
 }
+
+/* =========================================================
+ * DATE
+ * ======================================================= */
 
 function formatDate(
   value: string
 ) {
-  const date = new Date(
-    `${value}T00:00:00`
-  );
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
 
   if (
-    Number.isNaN(date.getTime())
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
     return value;
   }
@@ -660,21 +921,36 @@ function formatDate(
   return new Intl.DateTimeFormat(
     'th-TH',
     {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
     }
-  ).format(date);
+  ).format(
+    date
+  );
 }
+
+/* =========================================================
+ * DATE TIME
+ * ======================================================= */
 
 function formatDateTime(
   value: string
 ) {
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
   if (
-    Number.isNaN(date.getTime())
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
     return value;
   }
@@ -682,11 +958,22 @@ function formatDateTime(
   return new Intl.DateTimeFormat(
     'th-TH',
     {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
     }
-  ).format(date);
+  ).format(
+    date
+  );
 }

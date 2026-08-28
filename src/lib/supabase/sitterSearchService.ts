@@ -61,6 +61,27 @@ export interface SitterSearchResult {
   averageRating: number;
 
   reviewCount: number;
+
+  /** คะแนน Review แปลงเป็น 0-100 */
+  reviewScore: number;
+
+  /** คะแนนประสบการณ์ 0-100 (5 ปีขึ้นไป = 100) */
+  experienceScore: number;
+
+  /** คะแนน Core Quiz ล่าสุดที่ผ่าน */
+  coreQuizScore: number;
+
+  /** คะแนน Category Quiz แยกตาม category_id */
+  categoryQuizScores: Record<string, number>;
+
+  /** คะแนน Quiz รวม */
+  quizScore: number;
+
+  /** คะแนน Recommendation รวม */
+  recommendationScore: number;
+
+  /** true เมื่อยังไม่มีรีวิว */
+  isNewSitter: boolean;
 }
 
 /* =========================================================
@@ -154,6 +175,21 @@ interface ReviewRow {
   rating:
     | number
     | string;
+}
+
+interface QuizAttemptRow {
+  id: string;
+  sitter_id: string;
+  quiz_set_id: string;
+  score: number | string;
+  passed: boolean;
+  created_at: string;
+}
+
+interface QuizSetMetaRow {
+  id: string;
+  quiz_type: string;
+  category_id: string | null;
 }
 
 /* =========================================================
@@ -426,6 +462,85 @@ function getAvatarUrl(
   }
 
   return publicUrl;
+}
+
+/* =========================================================
+ * RECOMMENDATION HELPERS
+ * ======================================================= */
+
+function clampScore(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, value));
+}
+
+function roundScore(value: number): number {
+  return Number(value.toFixed(1));
+}
+
+function calculateReviewScore(averageRating: number): number {
+  return clampScore((averageRating / 5) * 100);
+}
+
+function calculateExperienceScore(experienceYears: number): number {
+  const years = Math.max(0, Number(experienceYears) || 0);
+  return clampScore((Math.min(years, 5) / 5) * 100);
+}
+
+function calculateCombinedQuizScore(
+  coreQuizScore: number,
+  categoryScores: number[]
+): number {
+  const validCategoryScores = categoryScores.filter((score) =>
+    Number.isFinite(score)
+  );
+
+  const categoryAverage =
+    validCategoryScores.length > 0
+      ? validCategoryScores.reduce((total, score) => total + score, 0) /
+        validCategoryScores.length
+      : 0;
+
+  const hasCore = coreQuizScore > 0;
+  const hasCategory = validCategoryScores.length > 0;
+
+  if (hasCore && hasCategory) {
+    return roundScore((coreQuizScore + categoryAverage) / 2);
+  }
+
+  if (hasCore) {
+    return roundScore(coreQuizScore);
+  }
+
+  if (hasCategory) {
+    return roundScore(categoryAverage);
+  }
+
+  return 0;
+}
+
+function calculateRecommendationScore({
+  reviewScore,
+  quizScore,
+  experienceScore,
+  isNewSitter,
+}: {
+  reviewScore: number;
+  quizScore: number;
+  experienceScore: number;
+  isNewSitter: boolean;
+}): number {
+  if (isNewSitter) {
+    // Cold Start: Quiz 70% + Experience 30%
+    return roundScore(quizScore * 0.7 + experienceScore * 0.3);
+  }
+
+  // สูตรปกติ: Review 50% + Quiz 30% + Experience 20%
+  return roundScore(
+    reviewScore * 0.5 + quizScore * 0.3 + experienceScore * 0.2
+  );
 }
 
 /* =========================================================
@@ -869,7 +984,66 @@ export const SitterSearchService = {
     }
 
     /* =====================================================
-     * 7. MAP RESULT
+     * 7. QUIZ ATTEMPTS
+     * =================================================== */
+
+    let quizAttempts: QuizAttemptRow[] = [];
+
+    if (visibleSitterIds.length > 0) {
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select(`
+          id,
+          sitter_id,
+          quiz_set_id,
+          score,
+          passed,
+          created_at
+        `)
+        .in('sitter_id', visibleSitterIds)
+        .eq('passed', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('GET SITTER QUIZ ATTEMPTS ERROR:', error);
+        quizAttempts = [];
+      } else {
+        quizAttempts = (data ?? []) as QuizAttemptRow[];
+      }
+    }
+
+    /* =====================================================
+     * 8. QUIZ SET META
+     * =================================================== */
+
+    const quizSetIds = uniqueStrings(
+      quizAttempts
+        .map((attempt) => cleanId(attempt.quiz_set_id))
+        .filter((value): value is string => Boolean(value))
+    );
+
+    let quizSets: QuizSetMetaRow[] = [];
+
+    if (quizSetIds.length > 0) {
+      const { data, error } = await supabase
+        .from('quiz_sets')
+        .select(`
+          id,
+          quiz_type,
+          category_id
+        `)
+        .in('id', quizSetIds);
+
+      if (error) {
+        console.error('GET RECOMMENDATION QUIZ SETS ERROR:', error);
+        quizSets = [];
+      } else {
+        quizSets = (data ?? []) as QuizSetMetaRow[];
+      }
+    }
+
+    /* =====================================================
+     * 9. MAP RESULT
      * =================================================== */
 
     const results =
@@ -1041,6 +1215,93 @@ export const SitterSearchService = {
               : 0;
 
           /* ===============================================
+           * RECOMMENDATION
+           * ============================================= */
+
+          const experienceYears = Number(
+            sitter.experience_years ?? 0
+          );
+
+          const reviewScore = roundScore(
+            calculateReviewScore(averageRating)
+          );
+
+          const experienceScore = roundScore(
+            calculateExperienceScore(experienceYears)
+          );
+
+          const sitterQuizAttempts = quizAttempts.filter(
+            (attempt) => attempt.sitter_id === sitter.id
+          );
+
+          // Query ถูกเรียงจาก attempt ใหม่ไปเก่าแล้ว
+          // จึงเก็บตัวแรกของแต่ละ quiz_set เป็นผลล่าสุดที่ผ่าน
+          const latestAttemptByQuizSet = new Map<
+            string,
+            QuizAttemptRow
+          >();
+
+          for (const attempt of sitterQuizAttempts) {
+            if (!latestAttemptByQuizSet.has(attempt.quiz_set_id)) {
+              latestAttemptByQuizSet.set(
+                attempt.quiz_set_id,
+                attempt
+              );
+            }
+          }
+
+          let coreQuizScore = 0;
+          const categoryQuizScores: Record<string, number> = {};
+
+          for (const attempt of latestAttemptByQuizSet.values()) {
+            const quizSet = quizSets.find(
+              (item) => item.id === attempt.quiz_set_id
+            );
+
+            if (!quizSet) {
+              continue;
+            }
+
+            const score = clampScore(Number(attempt.score));
+            const quizType = quizSet.quiz_type?.toUpperCase();
+
+            if (quizType === 'CORE') {
+              coreQuizScore = Math.max(coreQuizScore, score);
+              continue;
+            }
+
+            if (quizType === 'CATEGORY' && quizSet.category_id) {
+              const currentScore =
+                categoryQuizScores[quizSet.category_id];
+
+              if (currentScore === undefined || score > currentScore) {
+                categoryQuizScores[quizSet.category_id] = score;
+              }
+            }
+          }
+
+          const activeCategoryScores = sitterCategories
+            .map((categoryId) => categoryQuizScores[categoryId])
+            .filter(
+              (score): score is number =>
+                typeof score === 'number' && Number.isFinite(score)
+            );
+
+          const quizScore = calculateCombinedQuizScore(
+            coreQuizScore,
+            activeCategoryScores
+          );
+
+          const isNewSitter = reviewCount === 0;
+
+          const recommendationScore = calculateRecommendationScore({
+            reviewScore,
+            quizScore,
+            experienceScore,
+            isNewSitter,
+          });
+
+          /* ===============================================
            * AVATAR
            * ============================================= */
 
@@ -1092,11 +1353,7 @@ export const SitterSearchService = {
             specialty:
               sitter.specialty,
 
-            experienceYears:
-              Number(
-                sitter.experience_years ??
-                  0
-              ),
+            experienceYears,
 
             startingPrice,
 
@@ -1112,6 +1369,20 @@ export const SitterSearchService = {
             averageRating,
 
             reviewCount,
+
+            reviewScore,
+
+            experienceScore,
+
+            coreQuizScore: roundScore(coreQuizScore),
+
+            categoryQuizScores,
+
+            quizScore,
+
+            recommendationScore,
+
+            isNewSitter,
           };
         }
       );
@@ -1143,10 +1414,50 @@ export const SitterSearchService = {
 
           price:
             sitter.startingPrice,
+
+          rating:
+            sitter.averageRating,
+
+          reviews:
+            sitter.reviewCount,
+
+          coreQuiz:
+            sitter.coreQuizScore,
+
+          categoryQuiz:
+            sitter.categoryQuizScores,
+
+          quizScore:
+            sitter.quizScore,
+
+          experienceScore:
+            sitter.experienceScore,
+
+          recommendation:
+            sitter.recommendationScore,
+
+          newSitter:
+            sitter.isNewSitter,
         })
       )
     );
 
-    return results;
+    const sortedResults = [...results].sort((a, b) => {
+      if (b.recommendationScore !== a.recommendationScore) {
+        return b.recommendationScore - a.recommendationScore;
+      }
+
+      if (b.averageRating !== a.averageRating) {
+        return b.averageRating - a.averageRating;
+      }
+
+      if (b.reviewCount !== a.reviewCount) {
+        return b.reviewCount - a.reviewCount;
+      }
+
+      return b.experienceYears - a.experienceYears;
+    });
+
+    return sortedResults;
   },
 };

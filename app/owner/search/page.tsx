@@ -16,6 +16,7 @@ import {
   Loader2,
   MapPin,
   Search,
+  Sparkles,
   Star,
   UserRound,
 } from 'lucide-react';
@@ -53,52 +54,67 @@ export default function OwnerSearchPage() {
    * ===================================================== */
 
   useEffect(() => {
-    const loadSitters =
-      async () => {
-        try {
-          setLoading(true);
-          setError('');
+    const loadSitters = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-          const data =
-            await SitterSearchService.getSitters();
+        const data =
+          await SitterSearchService.getSitters();
 
-          console.log(
-            'OWNER SEARCH SITTERS:',
-            data.map(
-              (sitter) => ({
-                sitterProfileId:
-                  sitter.sitterProfileId,
+        console.log(
+          'OWNER SEARCH SITTERS:',
+          data.map(
+            (sitter) => ({
+              sitterProfileId:
+                sitter.sitterProfileId,
 
-                userId:
-                  sitter.userId,
+              name:
+                sitter.displayName,
 
-                name:
-                  sitter.displayName,
+              rating:
+                sitter.averageRating,
 
-                avatarUrl:
-                  sitter.avatarUrl,
-              })
-            )
-          );
+              reviews:
+                sitter.reviewCount,
 
-          setSitters(
-            data
-          );
-        } catch (err) {
-          console.error(
-            'LOAD SITTER SEARCH ERROR:',
-            err
-          );
+              coreQuiz:
+                sitter.coreQuizScore,
 
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'ไม่สามารถโหลดผู้รับฝากได้'
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+              categoryQuiz:
+                sitter.categoryQuizScores,
+
+              quizScore:
+                sitter.quizScore,
+
+              experienceScore:
+                sitter.experienceScore,
+
+              recommendation:
+                sitter.recommendationScore,
+
+              newSitter:
+                sitter.isNewSitter,
+            })
+          )
+        );
+
+        setSitters(data);
+      } catch (err) {
+        console.error(
+          'LOAD SITTER SEARCH ERROR:',
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถโหลดผู้รับฝากได้'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     void loadSitters();
   }, []);
@@ -116,14 +132,10 @@ export default function OwnerSearchPage() {
               (sitter) =>
                 sitter.province
             )
-            .filter(
-              Boolean
-            )
+            .filter(Boolean)
         )
       ).sort();
-    }, [
-      sitters,
-    ]);
+    }, [sitters]);
 
   /* =======================================================
    * FILTER
@@ -192,15 +204,83 @@ export default function OwnerSearchPage() {
     ]);
 
   /* =======================================================
+   * RECOMMENDATION
+   * ===================================================== */
+
+  const recommendedSitters =
+    useMemo(() => {
+      return [...filteredSitters]
+        .sort(
+          (
+            a,
+            b
+          ) => {
+            const scoreA =
+              getRecommendationScoreForSearch(
+                a,
+                category
+              );
+
+            const scoreB =
+              getRecommendationScoreForSearch(
+                b,
+                category
+              );
+
+            if (
+              scoreB !==
+              scoreA
+            ) {
+              return (
+                scoreB -
+                scoreA
+              );
+            }
+
+            if (
+              b.averageRating !==
+              a.averageRating
+            ) {
+              return (
+                b.averageRating -
+                a.averageRating
+              );
+            }
+
+            if (
+              b.reviewCount !==
+              a.reviewCount
+            ) {
+              return (
+                b.reviewCount -
+                a.reviewCount
+              );
+            }
+
+            return (
+              b.experienceYears -
+              a.experienceYears
+            );
+          }
+        )
+        .slice(
+          0,
+          3
+        );
+    }, [
+      filteredSitters,
+      category,
+    ]);
+
+  /* =======================================================
    * CLEAR FILTER
    * ===================================================== */
 
-  const clearFilters =
-    () => {
-      setKeyword('');
-      setProvince('');
-      setCategory('');
-    };
+  const clearFilters = () => {
+    setKeyword('');
+    setProvince('');
+    setCategory('');
+  };
 
   const hasFilter =
     keyword.trim() !==
@@ -215,7 +295,7 @@ export default function OwnerSearchPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-100 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
@@ -232,29 +312,31 @@ export default function OwnerSearchPage() {
    * ===================================================== */
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7 lg:px-8">
+
       {/* =================================================
        * SEARCH
        * =============================================== */}
 
-      <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm sm:p-7">
+      <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:p-7">
+
         <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
           <Search className="h-3.5 w-3.5" />
 
           Find Sitter
         </div>
 
-        <h1 className="mt-3 text-2xl font-black text-[#2E1065] sm:text-3xl">
+        <h1 className="mt-3 text-xl font-black text-[#2E1065] sm:text-2xl lg:text-3xl">
           ค้นหาผู้รับฝากสัตว์เลี้ยง
         </h1>
 
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+        <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">
           ค้นหาผู้รับฝากที่เหมาะกับสัตว์เลี้ยงของคุณ
-          จากพื้นที่ ประเภทสัตว์
-          และความเชี่ยวชาญ
+          จากพื้นที่ ประเภทสัตว์ และความเชี่ยวชาญ
         </p>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+
           {/* KEYWORD */}
 
           <div className="relative">
@@ -262,9 +344,7 @@ export default function OwnerSearchPage() {
 
             <input
               type="text"
-              value={
-                keyword
-              }
+              value={keyword}
               onChange={(
                 event
               ) =>
@@ -280,9 +360,7 @@ export default function OwnerSearchPage() {
           {/* PROVINCE */}
 
           <select
-            value={
-              province
-            }
+            value={province}
             onChange={(
               event
             ) =>
@@ -299,12 +377,8 @@ export default function OwnerSearchPage() {
             {provinces.map(
               (item) => (
                 <option
-                  key={
-                    item
-                  }
-                  value={
-                    item
-                  }
+                  key={item}
+                  value={item}
                 >
                   {item}
                 </option>
@@ -315,9 +389,7 @@ export default function OwnerSearchPage() {
           {/* CATEGORY */}
 
           <select
-            value={
-              category
-            }
+            value={category}
             onChange={(
               event
             ) =>
@@ -350,7 +422,8 @@ export default function OwnerSearchPage() {
         </div>
 
         {hasFilter && (
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4 flex items-center justify-between gap-3">
+
             <p className="text-xs text-slate-400">
               พบ{' '}
 
@@ -368,10 +441,11 @@ export default function OwnerSearchPage() {
               onClick={
                 clearFilters
               }
-              className="text-xs font-bold text-purple-600 transition hover:text-purple-800"
+              className="shrink-0 text-xs font-bold text-purple-600 transition hover:text-purple-800"
             >
               ล้างตัวกรอง
             </button>
+
           </div>
         )}
       </section>
@@ -387,10 +461,64 @@ export default function OwnerSearchPage() {
       )}
 
       {/* =================================================
+       * TOP 3 RECOMMENDATION
+       * =============================================== */}
+
+      {recommendedSitters.length >
+        0 && (
+        <section className="mt-7">
+
+          <div className="flex items-end justify-between gap-3">
+
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-600" />
+
+                <h2 className="text-base font-black text-purple-950 sm:text-lg">
+                  แนะนำสำหรับคุณ
+                </h2>
+              </div>
+
+              <p className="mt-1 text-[11px] leading-5 text-slate-400 sm:text-xs">
+                ผู้รับฝากที่เหมาะสมจากคะแนนรีวิว
+                ประสบการณ์ และผลแบบทดสอบ
+              </p>
+            </div>
+
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+
+            {recommendedSitters.map(
+              (
+                sitter,
+                index
+              ) => (
+                <RecommendedSitterCard
+                  key={
+                    sitter.sitterProfileId
+                  }
+                  sitter={
+                    sitter
+                  }
+                  rank={
+                    index + 1
+                  }
+                />
+              )
+            )}
+
+          </div>
+
+        </section>
+      )}
+
+      {/* =================================================
        * RESULT
        * =============================================== */}
 
-      <section className="mt-7">
+      <section className="mt-8">
+
         <div>
           <h2 className="text-lg font-black text-purple-950">
             ผู้รับฝากที่พร้อมให้บริการ
@@ -412,6 +540,7 @@ export default function OwnerSearchPage() {
         {filteredSitters.length ===
         0 ? (
           <div className="mt-5 flex min-h-65 flex-col items-center justify-center rounded-[28px] border border-dashed border-purple-200 bg-white px-5 text-center">
+
             <Search className="h-8 w-8 text-purple-200" />
 
             <h3 className="mt-4 text-sm font-black text-slate-700">
@@ -434,26 +563,31 @@ export default function OwnerSearchPage() {
                 ล้างตัวกรอง
               </button>
             )}
+
           </div>
         ) : (
+
           /* =================================================
            * SITTER CARDS
            * =============================================== */
 
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
             {filteredSitters.map(
               (sitter) => (
                 <article
                   key={
                     sitter.sitterProfileId
                   }
-                  className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
+                  className="flex h-full min-w-0 flex-col rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
                 >
+
                   {/* =====================================
                    * PROFILE
                    * =================================== */}
 
                   <div className="flex gap-4">
+
                     <SitterAvatar
                       src={
                         sitter.avatarUrl
@@ -464,9 +598,11 @@ export default function OwnerSearchPage() {
                     />
 
                     <div className="min-w-0 flex-1">
+
                       {/* NAME */}
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+
                         <h3 className="truncate font-black text-purple-950">
                           {
                             sitter.displayName
@@ -476,11 +612,24 @@ export default function OwnerSearchPage() {
                         {sitter.isVerified && (
                           <BadgeCheck className="h-4 w-4 shrink-0 text-purple-600" />
                         )}
+
                       </div>
+
+                      {/* NEW SITTER */}
+
+                      {sitter.isNewSitter && (
+                        <div className="mt-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-bold text-amber-700">
+                            <Sparkles className="h-3 w-3" />
+                            ผู้รับฝากหน้าใหม่
+                          </span>
+                        </div>
+                      )}
 
                       {/* LOCATION */}
 
                       <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-500">
+
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple-500" />
 
                         <span className="line-clamp-2">
@@ -497,11 +646,13 @@ export default function OwnerSearchPage() {
                             ) ||
                             'ยังไม่ได้ระบุพื้นที่'}
                         </span>
+
                       </div>
 
                       {/* RATING */}
 
                       <div className="mt-2 flex items-center gap-1.5">
+
                         <Star className="h-3.5 w-3.5 fill-current text-amber-500" />
 
                         {sitter.reviewCount >
@@ -523,10 +674,12 @@ export default function OwnerSearchPage() {
                           </>
                         ) : (
                           <span className="text-[10px] text-slate-400">
-                            ยังไม่มีคะแนน
+                            ยังไม่มีรีวิว
                           </span>
                         )}
+
                       </div>
+
                     </div>
                   </div>
 
@@ -536,11 +689,13 @@ export default function OwnerSearchPage() {
 
                   {sitter.specialty && (
                     <div className="mt-4 rounded-2xl bg-[#FAF8FE] px-4 py-3">
+
                       <p className="line-clamp-2 text-xs leading-5 text-slate-600">
                         {
                           sitter.specialty
                         }
                       </p>
+
                     </div>
                   )}
 
@@ -551,6 +706,7 @@ export default function OwnerSearchPage() {
                   {sitter.categories.length >
                     0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5">
+
                       {sitter.categories
                         .slice(
                           0,
@@ -572,6 +728,7 @@ export default function OwnerSearchPage() {
                             </span>
                           )
                         )}
+
                     </div>
                   )}
 
@@ -580,17 +737,20 @@ export default function OwnerSearchPage() {
                    * =================================== */}
 
                   <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-                    <div>
+
+                    <div className="min-w-0">
+
                       <p className="text-[10px] text-slate-400">
                         ราคาเริ่มต้น
                       </p>
 
-                      <p className="text-lg font-black text-purple-700">
+                      <p className="truncate text-lg font-black text-purple-700">
                         ฿
                         {sitter.startingPrice.toLocaleString(
                           'th-TH'
                         )}
                       </p>
+
                     </div>
 
                     <Link
@@ -599,10 +759,13 @@ export default function OwnerSearchPage() {
                     >
                       ดูรายละเอียด
                     </Link>
+
                   </div>
+
                 </article>
               )
             )}
+
           </div>
         )}
       </section>
@@ -611,45 +774,183 @@ export default function OwnerSearchPage() {
 }
 
 /* =========================================================
+ * RECOMMENDED SITTER CARD
+ * ======================================================= */
+
+function RecommendedSitterCard({
+  sitter,
+  rank,
+}: {
+  sitter: SitterSearchResult;
+  rank: number;
+}) {
+  const rankLabel =
+    rank === 1
+      ? '🥇'
+      : rank === 2
+        ? '🥈'
+        : '🥉';
+
+  return (
+    <Link
+      href={`/owner/search/${sitter.sitterProfileId}`}
+      className="group block h-full"
+    >
+      <article className="flex h-full min-w-0 flex-col rounded-[22px] border border-purple-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md">
+
+        {/* PROFILE */}
+        <div className="flex items-start gap-3">
+
+          <div className="relative shrink-0">
+            <SitterAvatar
+              src={sitter.avatarUrl}
+              name={sitter.displayName}
+              compact
+            />
+
+            <span className="absolute -left-1.5 -top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-white px-1 text-base shadow-sm">
+              {rankLabel}
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1">
+
+            {/* NAME */}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h3 className="truncate text-sm font-black text-purple-950">
+                {sitter.displayName}
+              </h3>
+
+              {sitter.isVerified && (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-purple-600" />
+              )}
+            </div>
+
+            {/* RATING */}
+            <div className="mt-1.5 flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-current text-amber-400" />
+
+              {sitter.reviewCount > 0 ? (
+                <>
+                  <span className="text-[11px] font-black text-slate-700">
+                    {sitter.averageRating.toFixed(1)}
+                  </span>
+
+                  <span className="text-[9px] text-slate-400">
+                    ({sitter.reviewCount} รีวิว)
+                  </span>
+                </>
+              ) : (
+                <span className="text-[9px] text-slate-400">
+                  ยังไม่มีรีวิว
+                </span>
+              )}
+            </div>
+
+            {/* LOCATION */}
+            <div className="mt-1.5 flex items-start gap-1 text-[10px] text-slate-400">
+              <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-purple-400" />
+
+              <span className="line-clamp-1">
+                {[
+                  sitter.area,
+                  sitter.district,
+                  sitter.province,
+                ]
+                  .filter(Boolean)
+                  .join(', ') ||
+                  'ยังไม่ได้ระบุพื้นที่'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* BADGES */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+
+          {sitter.isNewSitter && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-bold text-amber-700">
+              <Sparkles className="h-2.5 w-2.5" />
+              ผู้รับฝากหน้าใหม่
+            </span>
+          )}
+
+          {sitter.categories
+            .slice(0, 1)
+            .map((categoryId) => (
+              <span
+                key={categoryId}
+                className="rounded-full bg-purple-50 px-2.5 py-1 text-[9px] font-bold text-purple-700"
+              >
+                {getCategoryLabel(categoryId)}
+              </span>
+            ))}
+        </div>
+
+        {/* PRICE + BUTTON */}
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400">
+              ราคาเริ่มต้น
+            </p>
+
+            <p className="truncate text-lg font-black text-purple-700">
+              ฿
+              {sitter.startingPrice.toLocaleString(
+                'th-TH'
+              )}
+            </p>
+          </div>
+
+          <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-purple-600 px-4 py-2.5 text-xs font-bold text-white transition group-hover:bg-purple-700">
+            ดูรายละเอียด
+          </span>
+
+        </div>
+      </article>
+    </Link>
+  );
+}
+/* =========================================================
  * SITTER AVATAR
  * ======================================================= */
 
 function SitterAvatar({
   src,
   name,
+  compact = false,
 }: {
   src:
     | string
     | null;
 
-  name:
-    string;
+  name: string;
+
+  compact?: boolean;
 }) {
   const [
     imageError,
     setImageError,
-  ] =
-    useState(false);
+  ] = useState(false);
 
-  /*
-   * เมื่อ src เปลี่ยน
-   * เช่น Sitter เปลี่ยนรูปใหม่
-   * ให้ลองโหลดรูปอีกครั้ง
-   */
   useEffect(() => {
     setImageError(false);
-  }, [
-    src,
-  ]);
+  }, [src]);
 
   const showImage =
-    Boolean(
-      src
-    ) &&
+    Boolean(src) &&
     !imageError;
 
+  const sizeClass =
+    compact
+      ? 'h-14 w-14 rounded-[18px]'
+      : 'h-20 w-20 rounded-[22px]';
+
   return (
-    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[22px] border border-purple-100 bg-purple-50">
+    <div
+      className={`${sizeClass} shrink-0 overflow-hidden border border-purple-100 bg-purple-50`}
+    >
       {showImage ? (
         <img
           src={
@@ -674,7 +975,15 @@ function SitterAvatar({
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <UserRound className="h-8 w-8 text-purple-400" />
+
+          <UserRound
+            className={
+              compact
+                ? 'h-6 w-6 text-purple-400'
+                : 'h-8 w-8 text-purple-400'
+            }
+          />
+
         </div>
       )}
     </div>
@@ -686,8 +995,7 @@ function SitterAvatar({
  * ======================================================= */
 
 function getCategoryLabel(
-  categoryId:
-    string
+  categoryId: string
 ): string {
   switch (
     categoryId
@@ -707,4 +1015,102 @@ function getCategoryLabel(
     default:
       return categoryId;
   }
+}
+
+/* =========================================================
+ * RECOMMENDATION FOR CURRENT SEARCH
+ * ======================================================= */
+
+/**
+ * ถ้า Owner เลือกประเภทสัตว์
+ * จะให้น้ำหนัก Quiz ของประเภทนั้นโดยตรง
+ *
+ * ถ้าไม่ได้เลือกประเภท
+ * ใช้ recommendationScore ที่ Service คำนวณไว้
+ */
+function getRecommendationScoreForSearch(
+  sitter: SitterSearchResult,
+  selectedCategory: string
+): number {
+  if (!selectedCategory) {
+    return sitter.recommendationScore;
+  }
+
+  const categoryScore =
+    sitter.categoryQuizScores[
+      selectedCategory
+    ];
+
+  /*
+   * ถ้าไม่มี Category Quiz
+   * ใช้คะแนนที่ Service คำนวณไว้เดิม
+   */
+  if (
+    typeof categoryScore !==
+      'number' ||
+    !Number.isFinite(
+      categoryScore
+    )
+  ) {
+    return sitter.recommendationScore;
+  }
+
+  const coreScore =
+    Number.isFinite(
+      sitter.coreQuizScore
+    )
+      ? sitter.coreQuizScore
+      : 0;
+
+  /*
+   * Quiz Score
+   * Core 50% + Category 50%
+   */
+  const quizScore =
+    coreScore > 0
+      ? (
+          coreScore +
+          categoryScore
+        ) /
+        2
+      : categoryScore;
+
+  /*
+   * Cold Start:
+   * Quiz 70%
+   * Experience 30%
+   */
+  if (sitter.isNewSitter) {
+    return roundRecommendation(
+      quizScore *
+        0.7 +
+        sitter.experienceScore *
+          0.3
+    );
+  }
+
+  /*
+   * Sitter ปกติ:
+   * Review 50%
+   * Quiz 30%
+   * Experience 20%
+   */
+  return roundRecommendation(
+    sitter.reviewScore *
+      0.5 +
+      quizScore *
+        0.3 +
+      sitter.experienceScore *
+        0.2
+  );
+}
+
+function roundRecommendation(
+  value: number
+): number {
+  return Number(
+    value.toFixed(
+      1
+    )
+  );
 }

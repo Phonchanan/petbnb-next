@@ -16,20 +16,46 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
+  CheckCircle2,
+  User,
+  Phone,
+  Heart,
+  Home,
   X,
 } from 'lucide-react';
 
-import {
-  useRouter,
-} from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import {
   AuthService,
+  type UserRole,
 } from '@/lib/auth';
 
-export default function LoginPage() {
-  const router =
-    useRouter();
+type SignUpRole =
+  Exclude<UserRole, 'ADMIN'>;
+
+export default function SignUpPage() {
+  const router = useRouter();
+
+  const [
+    firstName,
+    setFirstName,
+  ] = useState('');
+
+  const [
+    lastName,
+    setLastName,
+  ] = useState('');
+
+  const [
+    displayName,
+    setDisplayName,
+  ] = useState('');
+
+  const [
+    phone,
+    setPhone,
+  ] = useState('');
 
   const [
     email,
@@ -42,8 +68,24 @@ export default function LoginPage() {
   ] = useState('');
 
   const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState('');
+
+  const [
+    role,
+    setRole,
+  ] =
+    useState<SignUpRole>('OWNER');
+
+  const [
     showPassword,
     setShowPassword,
+  ] = useState(false);
+
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
   ] = useState(false);
 
   const [
@@ -56,6 +98,11 @@ export default function LoginPage() {
     setErrorMessage,
   ] = useState('');
 
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState('');
+
   /* =========================================
    * AUTO HIDE ERROR
    * ======================================= */
@@ -66,21 +113,32 @@ export default function LoginPage() {
     }
 
     const timer =
-      window.setTimeout(
-        () => {
-          setErrorMessage('');
-        },
-        4500
-      );
+      window.setTimeout(() => {
+        setErrorMessage('');
+      }, 5000);
 
     return () =>
-      window.clearTimeout(
-        timer
-      );
+      window.clearTimeout(timer);
   }, [errorMessage]);
 
   /* =========================================
-   * LOGIN
+   * VALIDATE PHONE
+   * ======================================= */
+
+  const validatePhone = (
+    value: string
+  ) => {
+    if (!value) {
+      return true;
+    }
+
+    return /^[0-9]{9,10}$/.test(
+      value
+    );
+  };
+
+  /* =========================================
+   * SIGN UP
    * ======================================= */
 
   const handleSubmit =
@@ -91,13 +149,55 @@ export default function LoginPage() {
       event.preventDefault();
 
       setErrorMessage('');
+      setSuccessMessage('');
+
+      const cleanFirstName =
+        firstName.trim();
+
+      const cleanLastName =
+        lastName.trim();
+
+      const cleanDisplayName =
+        displayName.trim();
+
+      const cleanPhone =
+        phone
+          .replace(/\s/g, '')
+          .replace(/-/g, '');
 
       const cleanEmail =
-        email.trim();
+        email.trim().toLowerCase();
+
+      if (!cleanFirstName) {
+        setErrorMessage(
+          'กรุณากรอกชื่อ'
+        );
+
+        return;
+      }
+
+      if (!cleanLastName) {
+        setErrorMessage(
+          'กรุณากรอกนามสกุล'
+        );
+
+        return;
+      }
 
       if (!cleanEmail) {
         setErrorMessage(
           'กรุณากรอกอีเมล'
+        );
+
+        return;
+      }
+
+      if (
+        cleanPhone &&
+        !validatePhone(cleanPhone)
+      ) {
+        setErrorMessage(
+          'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง'
         );
 
         return;
@@ -111,66 +211,98 @@ export default function LoginPage() {
         return;
       }
 
+      if (password.length < 6) {
+        setErrorMessage(
+          'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+        );
+
+        return;
+      }
+
+      if (!confirmPassword) {
+        setErrorMessage(
+          'กรุณายืนยันรหัสผ่าน'
+        );
+
+        return;
+      }
+
+      if (
+        password !==
+        confirmPassword
+      ) {
+        setErrorMessage(
+          'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน'
+        );
+
+        return;
+      }
+
       try {
         setIsLoading(true);
 
-        await AuthService.signIn(
-          cleanEmail,
-          password
-        );
+        const data =
+          await AuthService.signUp({
+            email: cleanEmail,
+            password,
+            firstName:
+              cleanFirstName,
+            lastName:
+              cleanLastName,
+            displayName:
+              cleanDisplayName ||
+              `${cleanFirstName} ${cleanLastName}`,
+            phone:
+              cleanPhone ||
+              undefined,
+            role,
+          });
 
-        const profile =
-          await AuthService.getCurrentProfile();
-
-        if (!profile) {
-          throw new Error(
-            'ไม่พบข้อมูลโปรไฟล์ผู้ใช้งาน'
+        /*
+         * ถ้าเปิด Email Confirmation
+         * Supabase มักจะยังไม่มี session
+         */
+        if (!data.session) {
+          setSuccessMessage(
+            'สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชีก่อนเข้าสู่ระบบ'
           );
-        }
 
-        if (
-          !profile.is_active
-        ) {
-          await AuthService.signOut();
-
-          throw new Error(
-            'บัญชีนี้ถูกระงับการใช้งาน'
-          );
-        }
-
-        const role =
-          profile.role
-            .trim()
-            .toUpperCase();
-
-        if (
-          role ===
-          'ADMIN'
-        ) {
-          router.push(
-            '/admin'
+          window.setTimeout(
+            () => {
+              router.push(
+                '/signin'
+              );
+            },
+            2500
           );
 
           return;
         }
 
-        if (
-          role ===
-          'SITTER'
-        ) {
-          router.push(
-            '/sitter'
-          );
-
-          return;
-        }
-
-        router.push(
-          '/owner'
+        /*
+         * ถ้าไม่ได้เปิด Email Confirmation
+         * สมัครสำเร็จและมี session ทันที
+         */
+        setSuccessMessage(
+          'สมัครสมาชิกสำเร็จ กำลังพาไปยังหน้าหลัก...'
         );
+
+        window.setTimeout(() => {
+          if (role === 'SITTER') {
+            router.push(
+              '/sitter'
+            );
+
+            return;
+          }
+
+          router.push(
+            '/owner'
+          );
+        }, 1200);
       } catch (error) {
         console.error(
-          'LOGIN ERROR:',
+          'SIGNUP ERROR:',
           error
         );
 
@@ -183,35 +315,62 @@ export default function LoginPage() {
           message.toLowerCase();
 
         /* =====================================
-         * WRONG EMAIL / PASSWORD
+         * USER ALREADY EXISTS
          * =================================== */
 
         if (
           lowerMessage.includes(
-            'invalid login credentials'
+            'user already registered'
           ) ||
           lowerMessage.includes(
-            'invalid credentials'
+            'already registered'
+          ) ||
+          lowerMessage.includes(
+            'already been registered'
           )
         ) {
           setErrorMessage(
-            'อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง'
+            'อีเมลนี้ถูกสมัครสมาชิกแล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น'
           );
 
           return;
         }
 
         /* =====================================
-         * EMAIL NOT CONFIRMED
+         * INVALID EMAIL
          * =================================== */
 
         if (
           lowerMessage.includes(
-            'email not confirmed'
+            'invalid email'
           )
         ) {
           setErrorMessage(
-            'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ'
+            'รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'
+          );
+
+          return;
+        }
+
+        /* =====================================
+         * WEAK PASSWORD
+         * =================================== */
+
+        if (
+          lowerMessage.includes(
+            'password'
+          ) &&
+          (
+            lowerMessage.includes(
+              'weak'
+            ) ||
+            lowerMessage.includes(
+              'least'
+            )
+          )
+        ) {
+          setErrorMessage(
+            'รหัสผ่านไม่ผ่านเงื่อนไข กรุณาใช้รหัสผ่านที่มีความปลอดภัยมากขึ้น'
           );
 
           return;
@@ -223,31 +382,30 @@ export default function LoginPage() {
 
         if (
           lowerMessage.includes(
-            'too many requests'
+            'rate limit'
           ) ||
           lowerMessage.includes(
-            'rate limit'
+            'too many requests'
           )
         ) {
           setErrorMessage(
-            'มีการพยายามเข้าสู่ระบบหลายครั้ง กรุณารอสักครู่แล้วลองใหม่'
+            'มีการสมัครสมาชิกหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่'
           );
 
           return;
         }
 
         /* =====================================
-         * CUSTOM ERROR
+         * DATABASE ERROR
          * =================================== */
 
         if (
-          message ===
-            'บัญชีนี้ถูกระงับการใช้งาน' ||
-          message ===
-            'ไม่พบข้อมูลโปรไฟล์ผู้ใช้งาน'
+          lowerMessage.includes(
+            'database error'
+          )
         ) {
           setErrorMessage(
-            message
+            'ไม่สามารถบันทึกข้อมูลผู้ใช้งานได้ กรุณาลองใหม่อีกครั้ง'
           );
 
           return;
@@ -258,7 +416,8 @@ export default function LoginPage() {
          * =================================== */
 
         setErrorMessage(
-          'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'
+          message ||
+            'ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง'
         );
       } finally {
         setIsLoading(false);
@@ -280,7 +439,7 @@ export default function LoginPage() {
 
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold text-rose-700">
-                เข้าสู่ระบบไม่สำเร็จ
+                สมัครสมาชิกไม่สำเร็จ
               </p>
 
               <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -302,7 +461,31 @@ export default function LoginPage() {
         </div>
       )}
 
-      <div className="w-full max-w-md">
+      {/* =====================================
+       * SUCCESS TOAST
+       * =================================== */}
+
+      {successMessage && (
+        <div className="fixed right-4 top-4 z-9999 w-[calc(100%-2rem)] max-w-sm">
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl shadow-emerald-100/50">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-extrabold text-emerald-700">
+                สมัครสมาชิกสำเร็จ
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                {successMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-xl">
         <div className="rounded-4xl border border-purple-100 bg-white p-6 shadow-2xl shadow-purple-200/40 sm:p-8">
           {/* =================================
            * LOGO
@@ -314,12 +497,95 @@ export default function LoginPage() {
             </div>
 
             <h1 className="mt-4 text-2xl font-extrabold text-[#2E1065]">
-              ยินดีต้อนรับกลับมา
+              สมัครสมาชิก PetBnB
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              เข้าสู่ระบบเพื่อดูแลทุกเรื่องของน้องๆ บน PetBnB
+              สร้างบัญชีเพื่อเริ่มใช้งาน
+              PetBnB
             </p>
+          </div>
+
+          {/* =================================
+           * ROLE
+           * =============================== */}
+
+          <div className="mb-6">
+            <p className="mb-2 text-xs font-bold text-purple-950">
+              สมัครใช้งานในฐานะ
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setRole('OWNER')
+                }
+                className={`rounded-2xl border p-4 text-left transition ${
+                  role === 'OWNER'
+                    ? 'border-purple-400 bg-purple-50 ring-4 ring-purple-100'
+                    : 'border-purple-100 bg-white hover:border-purple-200 hover:bg-purple-50/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      role ===
+                      'OWNER'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-50 text-purple-500'
+                    }`}
+                  >
+                    <Heart className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-extrabold text-purple-950">
+                      เจ้าของสัตว์
+                    </p>
+
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      OWNER
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setRole('SITTER')
+                }
+                className={`rounded-2xl border p-4 text-left transition ${
+                  role === 'SITTER'
+                    ? 'border-purple-400 bg-purple-50 ring-4 ring-purple-100'
+                    : 'border-purple-100 bg-white hover:border-purple-200 hover:bg-purple-50/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      role ===
+                      'SITTER'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-50 text-purple-500'
+                    }`}
+                  >
+                    <Home className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-extrabold text-purple-950">
+                      ผู้รับฝาก
+                    </p>
+
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      SITTER
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* =================================
@@ -332,6 +598,151 @@ export default function LoginPage() {
             }
             className="space-y-4"
           >
+            {/* FIRST / LAST NAME */}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="firstName"
+                  className="mb-1.5 block text-xs font-bold text-purple-950"
+                >
+                  ชื่อ
+                </label>
+
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                  <input
+                    id="firstName"
+                    type="text"
+                    value={
+                      firstName
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setFirstName(
+                        event
+                          .target
+                          .value
+                      )
+                    }
+                    required
+                    autoComplete="given-name"
+                    placeholder="ชื่อ"
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="lastName"
+                  className="mb-1.5 block text-xs font-bold text-purple-950"
+                >
+                  นามสกุล
+                </label>
+
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                  <input
+                    id="lastName"
+                    type="text"
+                    value={
+                      lastName
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setLastName(
+                        event
+                          .target
+                          .value
+                      )
+                    }
+                    required
+                    autoComplete="family-name"
+                    placeholder="นามสกุล"
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* DISPLAY NAME */}
+
+            <div>
+              <label
+                htmlFor="displayName"
+                className="mb-1.5 block text-xs font-bold text-purple-950"
+              >
+                ชื่อที่แสดง
+                <span className="ml-1 font-normal text-slate-400">
+                  (ไม่บังคับ)
+                </span>
+              </label>
+
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                <input
+                  id="displayName"
+                  type="text"
+                  value={
+                    displayName
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setDisplayName(
+                      event
+                        .target
+                        .value
+                    )
+                  }
+                  placeholder="เช่น ใบหม่อน"
+                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                />
+              </div>
+            </div>
+
+            {/* PHONE */}
+
+            <div>
+              <label
+                htmlFor="phone"
+                className="mb-1.5 block text-xs font-bold text-purple-950"
+              >
+                เบอร์โทรศัพท์
+                <span className="ml-1 font-normal text-slate-400">
+                  (ไม่บังคับ)
+                </span>
+              </label>
+
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(
+                    event
+                  ) =>
+                    setPhone(
+                      event
+                        .target
+                        .value
+                    )
+                  }
+                  autoComplete="tel"
+                  placeholder="08xxxxxxxx"
+                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                />
+              </div>
+            </div>
+
             {/* EMAIL */}
 
             <div>
@@ -351,21 +762,13 @@ export default function LoginPage() {
                   value={email}
                   onChange={(
                     event
-                  ) => {
+                  ) =>
                     setEmail(
                       event
                         .target
                         .value
-                    );
-
-                    if (
-                      errorMessage
-                    ) {
-                      setErrorMessage(
-                        ''
-                      );
-                    }
-                  }}
+                    )
+                  }
                   required
                   autoComplete="email"
                   placeholder="example@email.com"
@@ -394,29 +797,20 @@ export default function LoginPage() {
                       ? 'text'
                       : 'password'
                   }
-                  value={
-                    password
-                  }
+                  value={password}
                   onChange={(
                     event
-                  ) => {
+                  ) =>
                     setPassword(
                       event
                         .target
                         .value
-                    );
-
-                    if (
-                      errorMessage
-                    ) {
-                      setErrorMessage(
-                        ''
-                      );
-                    }
-                  }}
+                    )
+                  }
                   required
-                  autoComplete="current-password"
-                  placeholder="กรอกรหัสผ่าน"
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="อย่างน้อย 6 ตัวอักษร"
                   className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
                 />
 
@@ -446,26 +840,89 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* CONFIRM PASSWORD */}
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="mb-1.5 block text-xs font-bold text-purple-950"
+              >
+                ยืนยันรหัสผ่าน
+              </label>
+
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                <input
+                  id="confirmPassword"
+                  type={
+                    showConfirmPassword
+                      ? 'text'
+                      : 'password'
+                  }
+                  value={
+                    confirmPassword
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setConfirmPassword(
+                      event
+                        .target
+                        .value
+                    )
+                  }
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="กรอกรหัสผ่านอีกครั้ง"
+                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowConfirmPassword(
+                      (
+                        previous
+                      ) =>
+                        !previous
+                    )
+                  }
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 transition hover:text-purple-600"
+                  aria-label={
+                    showConfirmPassword
+                      ? 'ซ่อนรหัสผ่าน'
+                      : 'แสดงรหัสผ่าน'
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* =================================
-             * LOGIN BUTTON
+             * SIGN UP BUTTON
              * =============================== */}
 
             <button
               type="submit"
-              disabled={
-                isLoading
-              }
+              disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-purple-600 to-violet-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:from-purple-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
 
-                  กำลังเข้าสู่ระบบ...
+                  กำลังสมัครสมาชิก...
                 </>
               ) : (
                 <>
-                  เข้าสู่ระบบ
+                  สมัครสมาชิก
 
                   <ArrowRight className="h-4 w-4" />
                 </>
@@ -474,20 +931,24 @@ export default function LoginPage() {
           </form>
 
           {/* =================================
-           * SIGN UP
+           * SIGN IN
            * =============================== */}
 
           <div className="mt-6 text-center text-xs text-slate-500">
-            ยังไม่มีบัญชี?{' '}
+            มีบัญชีอยู่แล้ว?{' '}
 
             <Link
-              href="/signup"
+              href="/signin"
               className="font-bold text-purple-700 hover:underline"
             >
-              สมัครสมาชิก
+              เข้าสู่ระบบ
             </Link>
           </div>
         </div>
+
+        <p className="mt-4 text-center text-[11px] leading-5 text-slate-400">
+          การสมัครสมาชิกหมายถึงคุณยอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัวของ PetBnB
+        </p>
       </div>
     </main>
   );

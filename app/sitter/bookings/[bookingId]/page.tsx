@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @next/next/no-img-element */
 
@@ -7,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  type ChangeEvent,
   type ReactNode,
 } from 'react';
 
@@ -15,15 +17,19 @@ import Link from 'next/link';
 import {
   AlertCircle,
   ArrowLeft,
+  Camera,
   CheckCircle2,
   Clock3,
   HeartPulse,
   Home,
+  ImagePlus,
   Loader2,
   PawPrint,
   Phone,
   PlayCircle,
+  Send,
   ShieldCheck,
+  Trash2,
   UserRound,
   Utensils,
   X,
@@ -53,6 +59,15 @@ import {
   type SitterBookingDetail,
 } from '@/lib/supabase/sitterBookingDetailService';
 
+import {
+  CareUpdateService,
+  type CareUpdate,
+} from '@/lib/supabase/careUpdateService';
+
+/* =========================================================
+ * TYPES
+ * ======================================================= */
+
 type ToastState =
   | {
       type:
@@ -61,6 +76,10 @@ type ToastState =
       message: string;
     }
   | null;
+
+/* =========================================================
+ * PAGE
+ * ======================================================= */
 
 export default function SitterBookingDetailPage() {
   const params =
@@ -78,6 +97,10 @@ export default function SitterBookingDetailPage() {
           params.bookingId
         ).trim()
       : '';
+
+  /* =======================================================
+   * BOOKING STATE
+   * ===================================================== */
 
   const [
     sitterProfileId,
@@ -107,6 +130,10 @@ export default function SitterBookingDetailPage() {
     setLoadError,
   ] = useState('');
 
+  /* =======================================================
+   * TOAST
+   * ===================================================== */
+
   const [
     toast,
     setToast,
@@ -114,6 +141,10 @@ export default function SitterBookingDetailPage() {
     useState<ToastState>(
       null
     );
+
+  /* =======================================================
+   * REJECT
+   * ===================================================== */
 
   const [
     rejectOpen,
@@ -124,6 +155,38 @@ export default function SitterBookingDetailPage() {
     rejectionReason,
     setRejectionReason,
   ] = useState('');
+
+  /* =======================================================
+   * DAILY CARE UPDATE
+   * ===================================================== */
+
+  const [
+    careUpdates,
+    setCareUpdates,
+  ] =
+    useState<CareUpdate[]>(
+      []
+    );
+
+  const [
+    updateMessage,
+    setUpdateMessage,
+  ] = useState('');
+
+  const [
+    selectedImages,
+    setSelectedImages,
+  ] =
+    useState<File[]>([]);
+
+  const [
+    updateLoading,
+    setUpdateLoading,
+  ] = useState(false);
+
+  /* =======================================================
+   * TOAST FUNCTION
+   * ===================================================== */
 
   const showToast =
     useCallback(
@@ -150,6 +213,10 @@ export default function SitterBookingDetailPage() {
       []
     );
 
+  /* =======================================================
+   * LOAD DATA
+   * ===================================================== */
+
   const loadData =
     useCallback(
       async () => {
@@ -160,14 +227,6 @@ export default function SitterBookingDetailPage() {
 
           setLoadError(
             ''
-          );
-
-          console.log(
-            'BOOKING PARAM DEBUG:',
-            {
-              params,
-              bookingId,
-            }
           );
 
           if (
@@ -182,6 +241,10 @@ export default function SitterBookingDetailPage() {
               }`
             );
           }
+
+          /* ===============================================
+           * CURRENT USER
+           * ============================================= */
 
           const current =
             await AuthService.getCurrentProfile();
@@ -206,6 +269,10 @@ export default function SitterBookingDetailPage() {
 
             return;
           }
+
+          /* ===============================================
+           * SITTER PROFILE
+           * ============================================= */
 
           const sitterProfile =
             await SitterProfileService.getByUserId(
@@ -237,6 +304,10 @@ export default function SitterBookingDetailPage() {
             cleanSitterProfileId
           );
 
+          /* ===============================================
+           * BOOKING DETAIL
+           * ============================================= */
+
           const detail =
             await SitterBookingDetailService.getById(
               bookingId,
@@ -251,6 +322,19 @@ export default function SitterBookingDetailPage() {
 
           setBooking(
             detail
+          );
+
+          /* ===============================================
+           * CARE UPDATES
+           * ============================================= */
+
+          const updates =
+            await CareUpdateService.getByBookingId(
+              bookingId
+            );
+
+          setCareUpdates(
+            updates
           );
         } catch (err) {
           console.error(
@@ -271,7 +355,6 @@ export default function SitterBookingDetailPage() {
       },
       [
         bookingId,
-        params,
         router,
       ]
     );
@@ -279,6 +362,10 @@ export default function SitterBookingDetailPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  /* =======================================================
+   * UPDATE BOOKING STATUS
+   * ===================================================== */
 
   const updateStatus =
     async (
@@ -369,6 +456,10 @@ export default function SitterBookingDetailPage() {
       }
     };
 
+  /* =======================================================
+   * REJECT BOOKING
+   * ===================================================== */
+
   const confirmReject =
     async () => {
       const reason =
@@ -389,6 +480,318 @@ export default function SitterBookingDetailPage() {
       );
     };
 
+  /* =======================================================
+   * SELECT CARE IMAGES
+   * ===================================================== */
+
+  const handleImageChange =
+    (
+      event:
+        ChangeEvent<HTMLInputElement>
+    ) => {
+      const files =
+        Array.from(
+          event.target.files ??
+            []
+        );
+
+      if (
+        files.length ===
+        0
+      ) {
+        return;
+      }
+
+      const invalidFile =
+        files.find(
+          (file) =>
+            !file.type.startsWith(
+              'image/'
+            )
+        );
+
+      if (
+        invalidFile
+      ) {
+        showToast(
+          'error',
+          'รองรับเฉพาะไฟล์รูปภาพ'
+        );
+
+        event.target.value =
+          '';
+
+        return;
+      }
+
+      const tooLarge =
+        files.find(
+          (file) =>
+            file.size >
+            5 *
+              1024 *
+              1024
+        );
+
+      if (
+        tooLarge
+      ) {
+        showToast(
+          'error',
+          'รูปภาพแต่ละรูปต้องมีขนาดไม่เกิน 5 MB'
+        );
+
+        event.target.value =
+          '';
+
+        return;
+      }
+
+      if (
+        selectedImages.length +
+          files.length >
+        4
+      ) {
+        showToast(
+          'error',
+          'สามารถเลือกรูปได้สูงสุด 4 รูปต่ออัปเดต'
+        );
+      }
+
+      const combined = [
+        ...selectedImages,
+        ...files,
+      ].slice(
+        0,
+        4
+      );
+
+      setSelectedImages(
+        combined
+      );
+
+      event.target.value =
+        '';
+    };
+
+  /* =======================================================
+   * REMOVE SELECTED IMAGE
+   * ===================================================== */
+
+  const removeSelectedImage =
+    (
+      index: number
+    ) => {
+      setSelectedImages(
+        (
+          previous
+        ) =>
+          previous.filter(
+            (
+              _,
+              currentIndex
+            ) =>
+              currentIndex !==
+              index
+          )
+      );
+    };
+
+  /* =======================================================
+   * CREATE CARE UPDATE
+   * ===================================================== */
+
+  const submitCareUpdate =
+    async () => {
+      if (
+        !booking ||
+        updateLoading
+      ) {
+        return;
+      }
+
+      if (
+        booking.status !==
+        'IN_PROGRESS'
+      ) {
+        showToast(
+          'error',
+          'สามารถส่งอัปเดตได้เฉพาะตอนที่กำลังให้บริการ'
+        );
+
+        return;
+      }
+
+      const cleanMessage =
+        updateMessage.trim();
+
+      if (!cleanMessage) {
+        showToast(
+          'error',
+          'กรุณากรอกรายละเอียดการดูแล'
+        );
+
+        return;
+      }
+
+      if (
+        !isValidUuid(
+          sitterProfileId
+        )
+      ) {
+        showToast(
+          'error',
+          'ไม่พบข้อมูลผู้รับฝาก'
+        );
+
+        return;
+      }
+
+      try {
+        setUpdateLoading(
+          true
+        );
+
+        await CareUpdateService.createUpdate(
+          {
+            bookingId:
+              booking.id,
+
+            sitterProfileId,
+
+            message:
+              cleanMessage,
+
+            images:
+              selectedImages,
+          }
+        );
+
+        setUpdateMessage(
+          ''
+        );
+
+        setSelectedImages(
+          []
+        );
+
+        showToast(
+          'success',
+          'ส่งอัปเดตการดูแลเรียบร้อยแล้ว'
+        );
+
+        const updates =
+          await CareUpdateService.getByBookingId(
+            booking.id
+          );
+
+        setCareUpdates(
+          updates
+        );
+      } catch (err) {
+        console.error(
+          'CREATE CARE UPDATE ERROR:',
+          err
+        );
+
+        showToast(
+          'error',
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถส่งอัปเดตได้'
+        );
+      } finally {
+        setUpdateLoading(
+          false
+        );
+      }
+    };
+
+  /* =======================================================
+   * DELETE CARE UPDATE
+   * ===================================================== */
+
+  const deleteCareUpdate =
+    async (
+      updateId: string
+    ) => {
+      if (
+        updateLoading
+      ) {
+        return;
+      }
+
+      if (
+        booking?.status !==
+        'IN_PROGRESS'
+      ) {
+        showToast(
+          'error',
+          'ไม่สามารถลบอัปเดตหลังจบการให้บริการได้'
+        );
+
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          'ต้องการลบอัปเดตนี้ใช่หรือไม่?'
+        );
+
+      if (
+        !confirmed
+      ) {
+        return;
+      }
+
+      try {
+        setUpdateLoading(
+          true
+        );
+
+        await CareUpdateService.deleteUpdate(
+          updateId,
+          sitterProfileId
+        );
+
+        setCareUpdates(
+          (
+            previous
+          ) =>
+            previous.filter(
+              (item) =>
+                item.id !==
+                updateId
+            )
+        );
+
+        showToast(
+          'success',
+          'ลบอัปเดตเรียบร้อยแล้ว'
+        );
+      } catch (err) {
+        console.error(
+          'DELETE CARE UPDATE ERROR:',
+          err
+        );
+
+        showToast(
+          'error',
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถลบอัปเดตได้'
+        );
+      } finally {
+        setUpdateLoading(
+          false
+        );
+      }
+    };
+
+  /* =======================================================
+   * LOADING
+   * ===================================================== */
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#FAF8FE]">
@@ -403,6 +806,10 @@ export default function SitterBookingDetailPage() {
     );
   }
 
+  /* =======================================================
+   * ERROR
+   * ===================================================== */
+
   if (
     loadError ||
     !booking
@@ -415,6 +822,7 @@ export default function SitterBookingDetailPage() {
             className="inline-flex items-center gap-2 text-sm font-bold text-purple-700"
           >
             <ArrowLeft className="h-4 w-4" />
+
             กลับรายการจอง
           </Link>
 
@@ -431,6 +839,10 @@ export default function SitterBookingDetailPage() {
     );
   }
 
+  /* =======================================================
+   * DATA
+   * ===================================================== */
+
   const status =
     getStatusInfo(
       booking.status as BookingStatus
@@ -439,8 +851,16 @@ export default function SitterBookingDetailPage() {
   const pet =
     booking.pet;
 
+  /* =======================================================
+   * UI
+   * ===================================================== */
+
   return (
     <main className="min-h-screen bg-[#FAF8FE]">
+      {/* =================================================
+       * TOAST
+       * =============================================== */}
+
       {toast && (
         <div className="fixed right-4 top-4 z-9999 w-[calc(100%-2rem)] max-w-sm">
           <div
@@ -479,19 +899,29 @@ export default function SitterBookingDetailPage() {
       )}
 
       <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
+        {/* =================================================
+         * BACK
+         * =============================================== */}
+
         <Link
           href="/sitter/bookings"
           className="inline-flex items-center gap-2 text-sm font-bold text-purple-700 hover:text-purple-900"
         >
           <ArrowLeft className="h-4 w-4" />
+
           กลับรายการจอง
         </Link>
+
+        {/* =================================================
+         * HEADER
+         * =============================================== */}
 
         <section className="mt-5 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
                 <Clock3 className="h-3.5 w-3.5" />
+
                 Booking Detail
               </div>
 
@@ -514,7 +944,15 @@ export default function SitterBookingDetailPage() {
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_350px]">
+          {/* =================================================
+           * LEFT
+           * =============================================== */}
+
           <div className="space-y-5">
+            {/* =================================================
+             * OWNER
+             * =============================================== */}
+
             <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
               <h2 className="text-sm font-black text-purple-950">
                 เจ้าของสัตว์เลี้ยง
@@ -555,6 +993,10 @@ export default function SitterBookingDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* =================================================
+             * PET
+             * =============================================== */}
 
             <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2">
@@ -599,7 +1041,8 @@ export default function SitterBookingDetailPage() {
                     <PetInfo
                       label="สายพันธุ์"
                       value={
-                        pet.breed || '-'
+                        pet.breed ||
+                        '-'
                       }
                     />
 
@@ -621,7 +1064,8 @@ export default function SitterBookingDetailPage() {
                     <PetInfo
                       label="น้ำหนัก"
                       value={
-                        pet.weight !== null
+                        pet.weight !==
+                        null
                           ? `${pet.weight} กก.`
                           : '-'
                       }
@@ -631,6 +1075,10 @@ export default function SitterBookingDetailPage() {
               </div>
             </section>
 
+            {/* =================================================
+             * FOOD
+             * =============================================== */}
+
             <DetailSection
               icon={
                 <Utensils className="h-4 w-4" />
@@ -639,14 +1087,22 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="ข้อมูลอาหาร"
-                value={pet.foodInfo}
+                value={
+                  pet.foodInfo
+                }
               />
 
               <DetailItem
                 label="ตารางให้อาหาร"
-                value={pet.feedingSchedule}
+                value={
+                  pet.feedingSchedule
+                }
               />
             </DetailSection>
+
+            {/* =================================================
+             * HEALTH
+             * =============================================== */}
 
             <DetailSection
               icon={
@@ -656,35 +1112,49 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="การแพ้"
-                value={pet.allergies}
+                value={
+                  pet.allergies
+                }
               />
 
               <DetailItem
                 label="โรคประจำตัว"
-                value={pet.medicalConditions}
+                value={
+                  pet.medicalConditions
+                }
               />
 
               <DetailItem
                 label="ยา"
-                value={pet.medication}
+                value={
+                  pet.medication
+                }
               />
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <BooleanInfo
                   label="การฉีดวัคซีน"
-                  value={pet.isVaccinated}
+                  value={
+                    pet.isVaccinated
+                  }
                   trueLabel="ฉีดวัคซีนแล้ว"
                   falseLabel="ยังไม่ได้ฉีดวัคซีน"
                 />
 
                 <BooleanInfo
                   label="การทำหมัน"
-                  value={pet.isSpayed}
+                  value={
+                    pet.isSpayed
+                  }
                   trueLabel="ทำหมันแล้ว"
                   falseLabel="ยังไม่ได้ทำหมัน"
                 />
               </div>
             </DetailSection>
+
+            {/* =================================================
+             * EXTRA CARE
+             * =============================================== */}
 
             <DetailSection
               icon={
@@ -694,19 +1164,29 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="ความต้องการพิเศษ"
-                value={pet.specialNeeds}
+                value={
+                  pet.specialNeeds
+                }
               />
 
               <DetailItem
                 label="พฤติกรรม"
-                value={pet.behaviorNotes}
+                value={
+                  pet.behaviorNotes
+                }
               />
 
               <DetailItem
                 label="ผู้ติดต่อฉุกเฉิน"
-                value={pet.emergencyContact}
+                value={
+                  pet.emergencyContact
+                }
               />
             </DetailSection>
+
+            {/* =================================================
+             * OWNER NOTE
+             * =============================================== */}
 
             {booking.ownerNote && (
               <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
@@ -721,7 +1201,353 @@ export default function SitterBookingDetailPage() {
                 </p>
               </section>
             )}
+
+            {/* =================================================
+             * DAILY CARE UPDATE
+             * =============================================== */}
+
+            {(
+              booking.status ===
+                'IN_PROGRESS' ||
+              booking.status ===
+                'COMPLETED'
+            ) && (
+              <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+                {/* =========================================
+                 * CARE HEADER
+                 * ======================================= */}
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50">
+                    <Camera className="h-5 w-5 text-purple-600" />
+                  </div>
+
+                  <div>
+                    <h2 className="text-sm font-black text-purple-950">
+                      อัปเดตการดูแล
+                    </h2>
+
+                    <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                      แจ้งกิจกรรมและความเป็นอยู่ของสัตว์เลี้ยงให้เจ้าของทราบ
+                    </p>
+                  </div>
+                </div>
+
+                {/* =========================================
+                 * CREATE UPDATE
+                 * ======================================= */}
+
+                {booking.status ===
+                  'IN_PROGRESS' && (
+                  <div className="mt-5 rounded-2xl border border-purple-100 bg-[#FAF8FE] p-4">
+                    <label className="text-xs font-black text-purple-950">
+                      อัปเดตวันนี้
+                    </label>
+
+                    <textarea
+                      rows={4}
+                      value={
+                        updateMessage
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setUpdateMessage(
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="เช่น วันนี้น้องกินอาหารหมด เล่นปกติ และพักผ่อนเรียบร้อยค่ะ"
+                      className="mt-2 w-full resize-none rounded-xl border border-purple-100 bg-white p-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                    />
+
+                    {/* =====================================
+                     * IMAGE PREVIEW
+                     * =================================== */}
+
+                    {selectedImages.length >
+                      0 && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {selectedImages.map(
+                          (
+                            file,
+                            index
+                          ) => (
+                            <SelectedImagePreview
+                              key={`${file.name}-${file.size}-${index}`}
+                              file={
+                                file
+                              }
+                              index={
+                                index
+                              }
+                              onRemove={
+                                removeSelectedImage
+                              }
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* =====================================
+                     * ACTION
+                     * =================================== */}
+
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <label
+                          className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition ${
+                            selectedImages.length >=
+                            4
+                              ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300'
+                              : 'cursor-pointer border-purple-200 bg-white text-purple-700 hover:bg-purple-50'
+                          }`}
+                        >
+                          <ImagePlus className="h-4 w-4" />
+
+                          เพิ่มรูปภาพ
+
+                          {selectedImages.length >
+                            0 && (
+                            <span>
+                              (
+                              {
+                                selectedImages.length
+                              }
+                              /4)
+                            </span>
+                          )}
+
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            disabled={
+                              selectedImages.length >=
+                              4
+                            }
+                            onChange={
+                              handleImageChange
+                            }
+                            className="hidden"
+                          />
+                        </label>
+
+                        <p className="mt-1.5 text-[9px] text-slate-400">
+                          สูงสุด 4 รูป รูปละไม่เกิน 5 MB
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={
+                          updateLoading ||
+                          !updateMessage.trim()
+                        }
+                        onClick={() =>
+                          void submitCareUpdate()
+                        }
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-xs font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {updateLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+
+                        ส่งอัปเดต
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* =========================================
+                 * COMPLETED MESSAGE
+                 * ======================================= */}
+
+                {booking.status ===
+                  'COMPLETED' && (
+                  <div className="mt-5 flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+
+                    <div>
+                      <p className="text-xs font-black text-emerald-700">
+                        การให้บริการเสร็จสิ้นแล้ว
+                      </p>
+
+                      <p className="mt-0.5 text-[10px] text-emerald-600">
+                        ประวัติการอัปเดตยังสามารถดูย้อนหลังได้
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* =========================================
+                 * TIMELINE
+                 * ======================================= */}
+
+                <div className="mt-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-black text-purple-950">
+                      ประวัติการอัปเดต
+                    </h3>
+
+                    {careUpdates.length >
+                      0 && (
+                      <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[9px] font-bold text-purple-600">
+                        {
+                          careUpdates.length
+                        }{' '}
+                        อัปเดต
+                      </span>
+                    )}
+                  </div>
+
+                  {careUpdates.length ===
+                  0 ? (
+                    <div className="mt-3 rounded-2xl border border-dashed border-purple-200 bg-[#FAF8FE] px-5 py-8 text-center">
+                      <Camera className="mx-auto h-7 w-7 text-purple-200" />
+
+                      <p className="mt-2 text-xs font-bold text-slate-400">
+                        ยังไม่มีอัปเดตการดูแล
+                      </p>
+
+                      {booking.status ===
+                        'IN_PROGRESS' && (
+                        <p className="mt-1 text-[10px] text-slate-300">
+                          เพิ่มอัปเดตแรกเพื่อแจ้งเจ้าของสัตว์เลี้ยง
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-4">
+                      {careUpdates.map(
+                        (
+                          update
+                        ) => (
+                          <article
+                            key={
+                              update.id
+                            }
+                            className="rounded-2xl border border-purple-100 bg-[#FAF8FE] p-4"
+                          >
+                            {/* =============================
+                             * MESSAGE HEADER
+                             * =========================== */}
+
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100">
+                                    <PawPrint className="h-3.5 w-3.5 text-purple-600" />
+                                  </div>
+
+                                  <div>
+                                    <p className="text-[10px] font-black text-purple-700">
+                                      อัปเดตการดูแล
+                                    </p>
+
+                                    <p className="mt-0.5 text-[9px] text-slate-400">
+                                      {formatCareUpdateDate(
+                                        update.createdAt
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                                  {
+                                    update.message
+                                  }
+                                </p>
+                              </div>
+
+                              {booking.status ===
+                                'IN_PROGRESS' && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    updateLoading
+                                  }
+                                  onClick={() =>
+                                    void deleteCareUpdate(
+                                      update.id
+                                    )
+                                  }
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
+                                  title="ลบอัปเดต"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* =============================
+                             * UPDATE IMAGES
+                             * =========================== */}
+
+                            {update.images
+                              .length >
+                              0 && (
+                              <div
+                                className={`mt-4 grid gap-2 ${
+                                  update
+                                    .images
+                                    .length ===
+                                  1
+                                    ? 'grid-cols-1'
+                                    : 'grid-cols-2'
+                                }`}
+                              >
+                                {update.images.map(
+                                  (
+                                    image
+                                  ) => (
+                                    <a
+                                      key={
+                                        image.id
+                                      }
+                                      href={
+                                        image.imageUrl
+                                      }
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className={`block overflow-hidden rounded-xl border border-purple-100 bg-white ${
+                                        update
+                                          .images
+                                          .length ===
+                                        1
+                                          ? 'max-h-100'
+                                          : 'aspect-square'
+                                      }`}
+                                    >
+                                      <img
+                                        src={
+                                          image.imageUrl
+                                        }
+                                        alt="รูปอัปเดตการดูแล"
+                                        className="h-full w-full object-cover transition duration-200 hover:scale-[1.02]"
+                                      />
+                                    </a>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </article>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
+
+          {/* =================================================
+           * RIGHT SUMMARY
+           * =============================================== */}
 
           <aside>
             <section className="sticky top-24 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
@@ -781,6 +1607,10 @@ export default function SitterBookingDetailPage() {
                 </div>
               </div>
 
+              {/* ===========================================
+               * PENDING
+               * ========================================= */}
+
               {booking.status ===
                 'PENDING' && (
                 <div className="mt-6 grid gap-2">
@@ -811,15 +1641,22 @@ export default function SitterBookingDetailPage() {
                       actionLoading
                     }
                     onClick={() =>
-                      setRejectOpen(true)
+                      setRejectOpen(
+                        true
+                      )
                     }
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white text-xs font-black text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   >
                     <XCircle className="h-4 w-4" />
+
                     ปฏิเสธการจอง
                   </button>
                 </div>
               )}
+
+              {/* ===========================================
+               * CONFIRMED
+               * ========================================= */}
 
               {booking.status ===
                 'CONFIRMED' && (
@@ -833,35 +1670,90 @@ export default function SitterBookingDetailPage() {
                       'IN_PROGRESS'
                     )
                   }
-                  className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-xs font-black text-white disabled:opacity-50"
+                  className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-xs font-black text-white hover:bg-purple-700 disabled:opacity-50"
                 >
-                  <PlayCircle className="h-4 w-4" />
+                  {actionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4" />
+                  )}
+
                   เริ่มให้บริการ
                 </button>
               )}
 
+              {/* ===========================================
+               * IN PROGRESS
+               * ========================================= */}
+
               {booking.status ===
                 'IN_PROGRESS' && (
-                <button
-                  type="button"
-                  disabled={
-                    actionLoading
-                  }
-                  onClick={() =>
-                    void updateStatus(
-                      'COMPLETED'
-                    )
-                  }
-                  className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-black text-white disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  เสร็จสิ้นการให้บริการ
-                </button>
+                <div className="mt-6">
+                  <div className="mb-3 rounded-xl bg-purple-50 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500" />
+
+                      <p className="text-[10px] font-black text-purple-700">
+                        กำลังให้บริการ
+                      </p>
+                    </div>
+
+                    <p className="mt-1 text-[9px] leading-4 text-purple-500">
+                      สามารถส่งอัปเดตการดูแลให้เจ้าของได้ระหว่างการรับฝาก
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={
+                      actionLoading ||
+                      updateLoading
+                    }
+                    onClick={() =>
+                      void updateStatus(
+                        'COMPLETED'
+                      )
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+
+                    เสร็จสิ้นการให้บริการ
+                  </button>
+                </div>
+              )}
+
+              {/* ===========================================
+               * COMPLETED
+               * ========================================= */}
+
+              {booking.status ===
+                'COMPLETED' && (
+                <div className="mt-6 rounded-xl bg-emerald-50 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+
+                    <p className="text-xs font-black text-emerald-700">
+                      ให้บริการเสร็จสิ้นแล้ว
+                    </p>
+                  </div>
+                  <p className="mt-1.5 text-[9px] text-emerald-600">
+                    การให้บริการรายการนี้เสร็จสิ้นแล้ว
+                  </p>
+                </div>
               )}
             </section>
           </aside>
         </div>
       </div>
+
+      {/* =================================================
+       * REJECT MODAL
+       * =============================================== */}
 
       {rejectOpen && (
         <div className="fixed inset-0 z-9998 flex items-center justify-center bg-black/30 p-4">
@@ -876,10 +1768,15 @@ export default function SitterBookingDetailPage() {
 
             <textarea
               rows={5}
-              value={rejectionReason}
-              onChange={(event) =>
+              value={
+                rejectionReason
+              }
+              onChange={(
+                event
+              ) =>
                 setRejectionReason(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder="ระบุเหตุผลที่ปฏิเสธ..."
@@ -893,8 +1790,13 @@ export default function SitterBookingDetailPage() {
                   actionLoading
                 }
                 onClick={() => {
-                  setRejectOpen(false);
-                  setRejectionReason('');
+                  setRejectOpen(
+                    false
+                  );
+
+                  setRejectionReason(
+                    ''
+                  );
                 }}
                 className="h-11 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
               >
@@ -925,6 +1827,81 @@ export default function SitterBookingDetailPage() {
   );
 }
 
+/* =========================================================
+ * SELECTED IMAGE PREVIEW
+ * ======================================================= */
+
+function SelectedImagePreview({
+  file,
+  index,
+  onRemove,
+}: {
+  file: File;
+  index: number;
+  onRemove: (
+    index: number
+  ) => void;
+}) {
+  const [
+    previewUrl,
+    setPreviewUrl,
+  ] = useState('');
+
+  useEffect(() => {
+    const url =
+      URL.createObjectURL(
+        file
+      );
+
+    setPreviewUrl(
+      url
+    );
+
+    return () => {
+      URL.revokeObjectURL(
+        url
+      );
+    };
+  }, [file]);
+
+  return (
+    <div className="relative aspect-square overflow-hidden rounded-xl border border-purple-100 bg-white">
+      {previewUrl && (
+        <img
+          src={
+            previewUrl
+          }
+          alt={`รูปที่ ${
+            index + 1
+          }`}
+          className="h-full w-full object-cover"
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={() =>
+          onRemove(
+            index
+          )
+        }
+        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+        title="เอารูปออก"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+
+      <div className="absolute bottom-1.5 left-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[8px] font-bold text-white">
+        {index + 1}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+ * DETAIL SECTION
+ * ======================================================= */
+
 function DetailSection({
   icon,
   title,
@@ -953,12 +1930,18 @@ function DetailSection({
   );
 }
 
+/* =========================================================
+ * DETAIL ITEM
+ * ======================================================= */
+
 function DetailItem({
   label,
   value,
 }: {
   label: string;
-  value: string | null;
+  value:
+    | string
+    | null;
 }) {
   return (
     <div className="rounded-2xl bg-[#FAF8FE] p-4">
@@ -973,6 +1956,10 @@ function DetailItem({
     </div>
   );
 }
+
+/* =========================================================
+ * PET INFO
+ * ======================================================= */
 
 function PetInfo({
   label,
@@ -994,6 +1981,10 @@ function PetInfo({
   );
 }
 
+/* =========================================================
+ * BOOLEAN INFO
+ * ======================================================= */
+
 function BooleanInfo({
   label,
   value,
@@ -1001,7 +1992,9 @@ function BooleanInfo({
   falseLabel,
 }: {
   label: string;
-  value: boolean | null;
+  value:
+    | boolean
+    | null;
   trueLabel: string;
   falseLabel: string;
 }) {
@@ -1014,14 +2007,16 @@ function BooleanInfo({
       <div className="mt-2 flex items-center gap-2">
         <ShieldCheck
           className={`h-4 w-4 ${
-            value === true
+            value ===
+            true
               ? 'text-emerald-500'
               : 'text-slate-300'
           }`}
         />
 
         <span className="text-xs font-bold text-slate-600">
-          {value === null
+          {value ===
+          null
             ? 'ไม่ได้ระบุ'
             : value
               ? trueLabel
@@ -1031,6 +2026,10 @@ function BooleanInfo({
     </div>
   );
 }
+
+/* =========================================================
+ * SUMMARY
+ * ======================================================= */
 
 function Summary({
   label,
@@ -1052,8 +2051,15 @@ function Summary({
   );
 }
 
+/* =========================================================
+ * UUID
+ * ======================================================= */
+
 function isValidUuid(
-  value: string | null | undefined
+  value:
+    | string
+    | null
+    | undefined
 ) {
   if (!value) {
     return false;
@@ -1071,60 +2077,82 @@ function isValidUuid(
   );
 }
 
+/* =========================================================
+ * STATUS
+ * ======================================================= */
+
 function getStatusInfo(
   status: BookingStatus
 ) {
   switch (status) {
     case 'PENDING':
       return {
-        label: 'รอการตอบรับ',
+        label:
+          'รอการตอบรับ',
+
         className:
           'bg-amber-100 text-amber-700',
       };
 
     case 'CONFIRMED':
       return {
-        label: 'ยืนยันแล้ว',
+        label:
+          'ยืนยันแล้ว',
+
         className:
           'bg-blue-100 text-blue-700',
       };
 
     case 'IN_PROGRESS':
       return {
-        label: 'กำลังดูแล',
+        label:
+          'กำลังดูแล',
+
         className:
           'bg-purple-100 text-purple-700',
       };
 
     case 'COMPLETED':
       return {
-        label: 'เสร็จสิ้น',
+        label:
+          'เสร็จสิ้น',
+
         className:
           'bg-emerald-100 text-emerald-700',
       };
 
     case 'REJECTED':
       return {
-        label: 'ปฏิเสธแล้ว',
+        label:
+          'ปฏิเสธแล้ว',
+
         className:
           'bg-rose-100 text-rose-700',
       };
 
     case 'CANCELLED':
       return {
-        label: 'เจ้าของยกเลิก',
+        label:
+          'เจ้าของยกเลิก',
+
         className:
           'bg-slate-100 text-slate-600',
       };
 
     default:
       return {
-        label: status,
+        label:
+          status,
+
         className:
           'bg-slate-100 text-slate-600',
       };
   }
 }
+
+/* =========================================================
+ * CATEGORY
+ * ======================================================= */
 
 function getCategoryLabel(
   categoryId: string
@@ -1147,8 +2175,14 @@ function getCategoryLabel(
   }
 }
 
+/* =========================================================
+ * GENDER
+ * ======================================================= */
+
 function getGenderLabel(
-  gender: string | null
+  gender:
+    | string
+    | null
 ) {
   if (!gender) {
     return '-';
@@ -1168,9 +2202,17 @@ function getGenderLabel(
   }
 }
 
+/* =========================================================
+ * AGE
+ * ======================================================= */
+
 function getAgeLabel(
-  ageYears: number | null,
-  birthDate: string | null
+  ageYears:
+    | number
+    | null,
+  birthDate:
+    | string
+    | null
 ) {
   if (
     ageYears !== null &&
@@ -1188,6 +2230,14 @@ function getAgeLabel(
       `${birthDate}T00:00:00`
     );
 
+  if (
+    Number.isNaN(
+      birth.getTime()
+    )
+  ) {
+    return '-';
+  }
+
   const today =
     new Date();
 
@@ -1200,9 +2250,11 @@ function getAgeLabel(
     birth.getMonth();
 
   if (
-    monthDifference < 0 ||
+    monthDifference <
+      0 ||
     (
-      monthDifference === 0 &&
+      monthDifference ===
+        0 &&
       today.getDate() <
         birth.getDate()
     )
@@ -1214,6 +2266,10 @@ function getAgeLabel(
     ? `${years} ปี`
     : '-';
 }
+
+/* =========================================================
+ * DAYS
+ * ======================================================= */
 
 function calculateDays(
   startDate: string,
@@ -1229,34 +2285,160 @@ function calculateDays(
       `${endDate}T00:00:00`
     );
 
+  if (
+    Number.isNaN(
+      start.getTime()
+    ) ||
+    Number.isNaN(
+      end.getTime()
+    )
+  ) {
+    return 0;
+  }
+
   const diff =
     end.getTime() -
     start.getTime();
 
-  return (
+  return Math.max(
+    1,
     Math.floor(
-      diff / 86400000
+      diff /
+        86400000
     ) + 1
   );
 }
 
+/* =========================================================
+ * DATE
+ * ======================================================= */
+
 function formatDate(
   value: string
 ) {
+  if (!value) {
+    return '-';
+  }
+
   const date =
     new Date(
       `${value}T00:00:00`
     );
 
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
   return new Intl.DateTimeFormat(
     'th-TH',
     {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
     }
-  ).format(date);
+  ).format(
+    date
+  );
 }
+
+/* =========================================================
+ * DATE TIME
+ * ======================================================= */
+
+function formatDateTime(
+  value: string
+) {
+  const date =
+    new Date(
+      value
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat(
+    'th-TH',
+    {
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
+    }
+  ).format(
+    date
+  );
+}
+
+/* =========================================================
+ * CARE UPDATE DATE
+ * ======================================================= */
+
+function formatCareUpdateDate(
+  value: string
+) {
+  const date =
+    new Date(
+      value
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat(
+    'th-TH',
+    {
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
+    }
+  ).format(
+    date
+  );
+}
+
+/* =========================================================
+ * MONEY
+ * ======================================================= */
 
 function formatMoney(
   value: number
@@ -1264,16 +2446,27 @@ function formatMoney(
   return new Intl.NumberFormat(
     'th-TH',
     {
-      style: 'currency',
-      currency: 'THB',
-      minimumFractionDigits: 0,
+      style:
+        'currency',
+
+      currency:
+        'THB',
+
+      minimumFractionDigits:
+        0,
     }
   ).format(
-    Number.isFinite(value)
+    Number.isFinite(
+      value
+    )
       ? value
       : 0
   );
 }
+
+/* =========================================================
+ * ACTION MESSAGE
+ * ======================================================= */
 
 function getActionSuccessMessage(
   status:
