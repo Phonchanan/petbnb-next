@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @next/next/no-img-element */
 
 'use client';
@@ -23,6 +24,10 @@ import {
   SitterSearchService,
   type SitterSearchResult,
 } from '@/lib/supabase/sitterSearchService';
+
+/* =========================================================
+ * PAGE
+ * ======================================================= */
 
 export default function OwnerSearchPage() {
   const [sitters, setSitters] =
@@ -57,7 +62,28 @@ export default function OwnerSearchPage() {
           const data =
             await SitterSearchService.getSitters();
 
-          setSitters(data);
+          console.log(
+            'OWNER SEARCH SITTERS:',
+            data.map(
+              (sitter) => ({
+                sitterProfileId:
+                  sitter.sitterProfileId,
+
+                userId:
+                  sitter.userId,
+
+                name:
+                  sitter.displayName,
+
+                avatarUrl:
+                  sitter.avatarUrl,
+              })
+            )
+          );
+
+          setSitters(
+            data
+          );
         } catch (err) {
           console.error(
             'LOAD SITTER SEARCH ERROR:',
@@ -90,10 +116,14 @@ export default function OwnerSearchPage() {
               (sitter) =>
                 sitter.province
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
         )
       ).sort();
-    }, [sitters]);
+    }, [
+      sitters,
+    ]);
 
   /* =======================================================
    * FILTER
@@ -161,15 +191,22 @@ export default function OwnerSearchPage() {
       category,
     ]);
 
-  const clearFilters = () => {
-    setKeyword('');
-    setProvince('');
-    setCategory('');
-  };
+  /* =======================================================
+   * CLEAR FILTER
+   * ===================================================== */
+
+  const clearFilters =
+    () => {
+      setKeyword('');
+      setProvince('');
+      setCategory('');
+    };
 
   const hasFilter =
-    keyword.trim() !== '' ||
-    province !== '' ||
+    keyword.trim() !==
+      '' ||
+    province !==
+      '' ||
     category !== '';
 
   /* =======================================================
@@ -190,13 +227,20 @@ export default function OwnerSearchPage() {
     );
   }
 
+  /* =======================================================
+   * UI
+   * ===================================================== */
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-      {/* SEARCH */}
+      {/* =================================================
+       * SEARCH
+       * =============================================== */}
 
       <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm sm:p-7">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
           <Search className="h-3.5 w-3.5" />
+
           Find Sitter
         </div>
 
@@ -218,8 +262,12 @@ export default function OwnerSearchPage() {
 
             <input
               type="text"
-              value={keyword}
-              onChange={(event) =>
+              value={
+                keyword
+              }
+              onChange={(
+                event
+              ) =>
                 setKeyword(
                   event.target.value
                 )
@@ -232,8 +280,12 @@ export default function OwnerSearchPage() {
           {/* PROVINCE */}
 
           <select
-            value={province}
-            onChange={(event) =>
+            value={
+              province
+            }
+            onChange={(
+              event
+            ) =>
               setProvince(
                 event.target.value
               )
@@ -247,8 +299,12 @@ export default function OwnerSearchPage() {
             {provinces.map(
               (item) => (
                 <option
-                  key={item}
-                  value={item}
+                  key={
+                    item
+                  }
+                  value={
+                    item
+                  }
                 >
                   {item}
                 </option>
@@ -259,8 +315,12 @@ export default function OwnerSearchPage() {
           {/* CATEGORY */}
 
           <select
-            value={category}
-            onChange={(event) =>
+            value={
+              category
+            }
+            onChange={(
+              event
+            ) =>
               setCategory(
                 event.target.value
               )
@@ -293,9 +353,13 @@ export default function OwnerSearchPage() {
           <div className="mt-4 flex items-center justify-between">
             <p className="text-xs text-slate-400">
               พบ{' '}
+
               <span className="font-bold text-purple-700">
-                {filteredSitters.length}
+                {
+                  filteredSitters.length
+                }
               </span>{' '}
+
               รายการ
             </p>
 
@@ -304,7 +368,7 @@ export default function OwnerSearchPage() {
               onClick={
                 clearFilters
               }
-              className="text-xs font-bold text-purple-600 hover:text-purple-800"
+              className="text-xs font-bold text-purple-600 transition hover:text-purple-800"
             >
               ล้างตัวกรอง
             </button>
@@ -312,7 +376,9 @@ export default function OwnerSearchPage() {
         )}
       </section>
 
-      {/* ERROR */}
+      {/* =================================================
+       * ERROR
+       * =============================================== */}
 
       {error && (
         <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -320,7 +386,9 @@ export default function OwnerSearchPage() {
         </div>
       )}
 
-      {/* RESULT */}
+      {/* =================================================
+       * RESULT
+       * =============================================== */}
 
       <section className="mt-7">
         <div>
@@ -330,10 +398,16 @@ export default function OwnerSearchPage() {
 
           <p className="mt-1 text-xs text-slate-400">
             พบทั้งหมด{' '}
-            {filteredSitters.length}{' '}
+            {
+              filteredSitters.length
+            }{' '}
             รายการ
           </p>
         </div>
+
+        {/* =================================================
+         * EMPTY
+         * =============================================== */}
 
         {filteredSitters.length ===
         0 ? (
@@ -355,13 +429,17 @@ export default function OwnerSearchPage() {
                 onClick={
                   clearFilters
                 }
-                className="mt-4 rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-purple-700"
+                className="mt-4 rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
               >
                 ล้างตัวกรอง
               </button>
             )}
           </div>
         ) : (
+          /* =================================================
+           * SITTER CARDS
+           * =============================================== */
+
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredSitters.map(
               (sitter) => (
@@ -371,37 +449,36 @@ export default function OwnerSearchPage() {
                   }
                   className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
                 >
-                  {/* PROFILE */}
+                  {/* =====================================
+                   * PROFILE
+                   * =================================== */}
 
                   <div className="flex gap-4">
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[22px] bg-purple-100">
-                      {sitter.avatarUrl ? (
-                        <img
-                          src={
-                            sitter.avatarUrl
-                          }
-                          alt={
-                            sitter.displayName
-                          }
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <UserRound className="h-8 w-8 text-purple-400" />
-                        </div>
-                      )}
-                    </div>
+                    <SitterAvatar
+                      src={
+                        sitter.avatarUrl
+                      }
+                      name={
+                        sitter.displayName
+                      }
+                    />
 
                     <div className="min-w-0 flex-1">
+                      {/* NAME */}
+
                       <div className="flex items-center gap-1.5">
                         <h3 className="truncate font-black text-purple-950">
-                          {sitter.displayName}
+                          {
+                            sitter.displayName
+                          }
                         </h3>
 
                         {sitter.isVerified && (
                           <BadgeCheck className="h-4 w-4 shrink-0 text-purple-600" />
                         )}
                       </div>
+
+                      {/* LOCATION */}
 
                       <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-500">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple-500" />
@@ -412,11 +489,17 @@ export default function OwnerSearchPage() {
                             sitter.district,
                             sitter.province,
                           ]
-                            .filter(Boolean)
-                            .join(', ') ||
+                            .filter(
+                              Boolean
+                            )
+                            .join(
+                              ', '
+                            ) ||
                             'ยังไม่ได้ระบุพื้นที่'}
                         </span>
                       </div>
+
+                      {/* RATING */}
 
                       <div className="mt-2 flex items-center gap-1.5">
                         <Star className="h-3.5 w-3.5 fill-current text-amber-500" />
@@ -447,23 +530,32 @@ export default function OwnerSearchPage() {
                     </div>
                   </div>
 
-                  {/* SPECIALTY */}
+                  {/* =====================================
+                   * SPECIALTY
+                   * =================================== */}
 
                   {sitter.specialty && (
                     <div className="mt-4 rounded-2xl bg-[#FAF8FE] px-4 py-3">
                       <p className="line-clamp-2 text-xs leading-5 text-slate-600">
-                        {sitter.specialty}
+                        {
+                          sitter.specialty
+                        }
                       </p>
                     </div>
                   )}
 
-                  {/* CATEGORIES */}
+                  {/* =====================================
+                   * CATEGORIES
+                   * =================================== */}
 
                   {sitter.categories.length >
                     0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5">
                       {sitter.categories
-                        .slice(0, 3)
+                        .slice(
+                          0,
+                          3
+                        )
                         .map(
                           (
                             categoryId
@@ -483,7 +575,9 @@ export default function OwnerSearchPage() {
                     </div>
                   )}
 
-                  {/* BOTTOM */}
+                  {/* =====================================
+                   * BOTTOM
+                   * =================================== */}
 
                   <div className="mt-auto flex items-end justify-between gap-3 pt-5">
                     <div>
@@ -498,12 +592,6 @@ export default function OwnerSearchPage() {
                         )}
                       </p>
                     </div>
-
-                    {/* สำคัญมาก:
-                        ต้องเป็น /owner/search/
-                        เพราะหน้า detail อยู่ที่
-                        app/owner/search/[id]/page.tsx
-                    */}
 
                     <Link
                       href={`/owner/search/${sitter.sitterProfileId}`}
@@ -522,10 +610,88 @@ export default function OwnerSearchPage() {
   );
 }
 
+/* =========================================================
+ * SITTER AVATAR
+ * ======================================================= */
+
+function SitterAvatar({
+  src,
+  name,
+}: {
+  src:
+    | string
+    | null;
+
+  name:
+    string;
+}) {
+  const [
+    imageError,
+    setImageError,
+  ] =
+    useState(false);
+
+  /*
+   * เมื่อ src เปลี่ยน
+   * เช่น Sitter เปลี่ยนรูปใหม่
+   * ให้ลองโหลดรูปอีกครั้ง
+   */
+  useEffect(() => {
+    setImageError(false);
+  }, [
+    src,
+  ]);
+
+  const showImage =
+    Boolean(
+      src
+    ) &&
+    !imageError;
+
+  return (
+    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[22px] border border-purple-100 bg-purple-50">
+      {showImage ? (
+        <img
+          src={
+            src ?? ''
+          }
+          alt={`รูปโปรไฟล์ ${name}`}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => {
+            console.error(
+              'SITTER AVATAR LOAD ERROR:',
+              {
+                name,
+                src,
+              }
+            );
+
+            setImageError(
+              true
+            );
+          }}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <UserRound className="h-8 w-8 text-purple-400" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+ * CATEGORY LABEL
+ * ======================================================= */
+
 function getCategoryLabel(
-  categoryId: string
+  categoryId:
+    string
 ): string {
-  switch (categoryId) {
+  switch (
+    categoryId
+  ) {
     case 'CANINE_FELINE':
       return 'สุนัขและแมว';
 

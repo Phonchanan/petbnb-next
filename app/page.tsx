@@ -266,10 +266,7 @@ export default function HomePage() {
                   {category.description}
                 </p>
 
-                <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-purple-600">
-                  ดูผู้รับฝาก
-                  <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
-                </div>
+               
               </article>
             ))}
           </div>

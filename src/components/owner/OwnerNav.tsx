@@ -15,7 +15,6 @@ import {
 
 import {
   CalendarDays,
-  Heart,
   LayoutDashboard,
   LogOut,
   PawPrint,
@@ -48,11 +47,6 @@ const menuItems = [
     label: 'การจอง',
     href: '/owner/bookings',
     icon: CalendarDays,
-  },
-  {
-    label: 'รายการโปรด',
-    href: '/owner/favorites',
-    icon: Heart,
   },
   {
     label: 'โปรไฟล์',

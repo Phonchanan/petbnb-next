@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -32,20 +33,14 @@ import {
 
 interface ServiceForm {
   categoryId: string;
-
   serviceName: string;
-
   description: string;
-
   price: string;
-
   priceUnit: string;
-
   isActive: boolean;
 }
 
-const initialForm:
-  ServiceForm = {
+const initialForm: ServiceForm = {
   categoryId: '',
   serviceName: '',
   description: '',
@@ -81,10 +76,9 @@ export default function SitterServicesPage() {
   const [
     form,
     setForm,
-  ] =
-    useState<ServiceForm>(
-      initialForm
-    );
+  ] = useState<ServiceForm>(
+    initialForm
+  );
 
   const [
     editingServiceId,
@@ -126,6 +120,79 @@ export default function SitterServicesPage() {
     message,
     setMessage,
   ] = useState('');
+
+  /* =======================================================
+   * TOAST
+   * ===================================================== */
+
+  const toastTimerRef =
+    useRef<
+      ReturnType<
+        typeof setTimeout
+      > | null
+    >(null);
+
+  const clearToastTimer =
+    useCallback(() => {
+      if (
+        toastTimerRef.current
+      ) {
+        clearTimeout(
+          toastTimerRef.current
+        );
+
+        toastTimerRef.current =
+          null;
+      }
+    }, []);
+
+  const showSuccess =
+    useCallback(
+      (
+        text: string
+      ) => {
+        clearToastTimer();
+
+        setError('');
+        setMessage(text);
+
+        toastTimerRef.current =
+          setTimeout(() => {
+            setMessage('');
+
+            toastTimerRef.current =
+              null;
+          }, 3500);
+      },
+      [clearToastTimer]
+    );
+
+  const showError =
+    useCallback(
+      (
+        text: string
+      ) => {
+        clearToastTimer();
+
+        setMessage('');
+        setError(text);
+
+        toastTimerRef.current =
+          setTimeout(() => {
+            setError('');
+
+            toastTimerRef.current =
+              null;
+          }, 5000);
+      },
+      [clearToastTimer]
+    );
+
+  useEffect(() => {
+    return () => {
+      clearToastTimer();
+    };
+  }, [clearToastTimer]);
 
   /* =======================================================
    * LOAD
@@ -170,7 +237,7 @@ export default function SitterServicesPage() {
             err
           );
 
-          setError(
+          showError(
             err instanceof Error
               ? err.message
               : 'ไม่สามารถโหลดข้อมูลบริการได้'
@@ -179,7 +246,7 @@ export default function SitterServicesPage() {
           setLoading(false);
         }
       },
-      []
+      [showError]
     );
 
   useEffect(() => {
@@ -229,53 +296,52 @@ export default function SitterServicesPage() {
       setEditingServiceId(
         null
       );
-
-      setError('');
     };
 
   /* =======================================================
    * EDIT
    * ===================================================== */
 
-  const handleEdit =
-    (
-      service: SitterServiceItem
-    ) => {
-      setEditingServiceId(
-        service.id
-      );
+  const handleEdit = (
+    service: SitterServiceItem
+  ) => {
+    setEditingServiceId(
+      service.id
+    );
 
-      setForm({
-        categoryId:
-          service.categoryId,
+    setForm({
+      categoryId:
+        service.categoryId,
 
-        serviceName:
-          service.serviceName,
+      serviceName:
+        service.serviceName,
 
-        description:
-          service.description ??
-          '',
+      description:
+        service.description ??
+        '',
 
-        price:
-          String(
-            service.price
-          ),
+      price:
+        String(
+          service.price
+        ),
 
-        priceUnit:
-          service.priceUnit,
+      priceUnit:
+        service.priceUnit,
 
-        isActive:
-          service.isActive,
-      });
+      isActive:
+        service.isActive,
+    });
 
-      setError('');
-      setMessage('');
+    clearToastTimer();
 
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    };
+    setError('');
+    setMessage('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   /* =======================================================
    * SAVE
@@ -284,24 +350,30 @@ export default function SitterServicesPage() {
   const handleSave =
     async () => {
       if (!sitterId) {
+        showError(
+          'ไม่พบข้อมูล Sitter'
+        );
+
         return;
       }
 
       if (
         !form.categoryId
       ) {
-        setError(
+        showError(
           'กรุณาเลือกประเภทสัตว์'
         );
+
         return;
       }
 
       if (
         !form.serviceName.trim()
       ) {
-        setError(
+        showError(
           'กรุณาระบุชื่อบริการ'
         );
+
         return;
       }
 
@@ -316,31 +388,36 @@ export default function SitterServicesPage() {
         ) ||
         price <= 0
       ) {
-        setError(
+        showError(
           'กรุณาระบุราคาที่ถูกต้อง'
         );
+
         return;
       }
 
-      /*
-       * ตรวจจาก category ที่โหลดมา
-       * ซึ่งมีเฉพาะ CERTIFIED
-       */
       if (
         !categoryMap.has(
           form.categoryId
         )
       ) {
-        setError(
+        showError(
           'คุณยังไม่ผ่านการรับรองสำหรับประเภทสัตว์นี้'
         );
+
         return;
       }
 
       try {
         setSaving(true);
+
+        clearToastTimer();
+
         setError('');
         setMessage('');
+
+        /* =========================
+         * UPDATE
+         * ======================= */
 
         if (
           editingServiceId
@@ -381,44 +458,57 @@ export default function SitterServicesPage() {
               )
           );
 
-          setMessage(
+          resetForm();
+
+          showSuccess(
             'แก้ไขบริการเรียบร้อยแล้ว'
           );
-        } else {
-          const created =
-            await SitterService.createService({
-              sitterId,
 
-              categoryId:
-                form.categoryId,
-
-              serviceName:
-                form.serviceName,
-
-              description:
-                form.description,
-
-              price,
-
-              priceUnit:
-                form.priceUnit,
-            });
-
-          setServices(
-            (current) => [
-              created,
-              ...current,
-            ]
-          );
-
-          setMessage(
-            'เพิ่มบริการเรียบร้อยแล้ว'
-          );
+          return;
         }
 
+        /* =========================
+         * CREATE
+         * ======================= */
+
+        const created =
+          await SitterService.createService({
+            sitterId,
+
+            categoryId:
+              form.categoryId,
+
+            serviceName:
+              form.serviceName,
+
+            description:
+              form.description,
+
+            price,
+
+            priceUnit:
+              form.priceUnit,
+          });
+
+        setServices(
+          (current) => [
+            created,
+            ...current,
+          ]
+        );
+
         resetForm();
+
+        showSuccess(
+          'เพิ่มบริการเรียบร้อยแล้ว'
+        );
       } catch (err) {
-        setError(
+        console.error(
+          'SAVE SERVICE ERROR:',
+          err
+        );
+
+        showError(
           err instanceof Error
             ? err.message
             : 'ไม่สามารถบันทึกบริการได้'
@@ -450,6 +540,8 @@ export default function SitterServicesPage() {
           service.id
         );
 
+        clearToastTimer();
+
         setError('');
         setMessage('');
 
@@ -474,11 +566,16 @@ export default function SitterServicesPage() {
           resetForm();
         }
 
-        setMessage(
+        showSuccess(
           'ลบบริการเรียบร้อยแล้ว'
         );
       } catch (err) {
-        setError(
+        console.error(
+          'DELETE SERVICE ERROR:',
+          err
+        );
+
+        showError(
           err instanceof Error
             ? err.message
             : 'ไม่สามารถลบบริการได้'
@@ -502,6 +599,8 @@ export default function SitterServicesPage() {
         setTogglingId(
           service.id
         );
+
+        clearToastTimer();
 
         setError('');
         setMessage('');
@@ -529,13 +628,18 @@ export default function SitterServicesPage() {
             )
         );
 
-        setMessage(
+        showSuccess(
           nextValue
             ? 'เปิดบริการเรียบร้อยแล้ว'
             : 'ปิดบริการเรียบร้อยแล้ว'
         );
       } catch (err) {
-        setError(
+        console.error(
+          'TOGGLE SERVICE ERROR:',
+          err
+        );
+
+        showError(
           err instanceof Error
             ? err.message
             : 'ไม่สามารถเปลี่ยนสถานะบริการได้'
@@ -554,6 +658,23 @@ export default function SitterServicesPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#FAF8FE]">
+        <ToastNotification
+          message={
+            message
+          }
+          error={
+            error
+          }
+          onCloseMessage={() => {
+            clearToastTimer();
+            setMessage('');
+          }}
+          onCloseError={() => {
+            clearToastTimer();
+            setError('');
+          }}
+        />
+
         <div className="flex min-h-[70vh] items-center justify-center">
           <div className="text-center">
             <Loader2 className="mx-auto h-7 w-7 animate-spin text-purple-600" />
@@ -573,8 +694,31 @@ export default function SitterServicesPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8FE]">
+      {/* ===================================================
+       * TOAST
+       * ================================================= */}
+
+      <ToastNotification
+        message={
+          message
+        }
+        error={
+          error
+        }
+        onCloseMessage={() => {
+          clearToastTimer();
+          setMessage('');
+        }}
+        onCloseError={() => {
+          clearToastTimer();
+          setError('');
+        }}
+      />
+
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* HEADER */}
+        {/* =================================================
+         * HEADER
+         * =============================================== */}
 
         <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
@@ -593,25 +737,9 @@ export default function SitterServicesPage() {
           </p>
         </section>
 
-        {/* MESSAGE */}
-
-        {message && (
-          <div className="mt-4 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
-            <CheckCircle2 className="h-5 w-5" />
-
-            {message}
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-
-            {error}
-          </div>
-        )}
-
-        {/* CERTIFIED CATEGORIES */}
+        {/* =================================================
+         * CERTIFIED CATEGORIES
+         * =============================================== */}
 
         <section className="mt-5 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
           <div>
@@ -640,7 +768,9 @@ export default function SitterServicesPage() {
           ) : (
             <div className="mt-4 flex flex-wrap gap-2">
               {categories.map(
-                (category) => (
+                (
+                  category
+                ) => (
                   <div
                     key={
                       category.categoryId
@@ -672,10 +802,12 @@ export default function SitterServicesPage() {
           )}
         </section>
 
-        {/* FORM */}
+        {/* =================================================
+         * FORM
+         * =============================================== */}
 
         <section className="mt-5 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-black text-purple-950">
                 {editingServiceId
@@ -694,7 +826,7 @@ export default function SitterServicesPage() {
                 onClick={
                   resetForm
                 }
-                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-200"
               >
                 <X className="h-4 w-4" />
 
@@ -727,14 +859,16 @@ export default function SitterServicesPage() {
                     event.target.value
                   )
                 }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none disabled:opacity-50"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">
                   เลือกประเภทสัตว์ที่ผ่านการรับรอง
                 </option>
 
                 {categories.map(
-                  (category) => (
+                  (
+                    category
+                  ) => (
                     <option
                       key={
                         category.categoryId
@@ -752,7 +886,7 @@ export default function SitterServicesPage() {
               </select>
             </div>
 
-            {/* NAME */}
+            {/* SERVICE NAME */}
 
             <div>
               <label className="mb-2 block text-xs font-bold text-slate-600">
@@ -772,7 +906,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="เช่น รับฝากรายวัน"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
               />
             </div>
 
@@ -798,7 +932,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="เช่น 250"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
               />
             </div>
 
@@ -821,7 +955,7 @@ export default function SitterServicesPage() {
                     event.target.value
                   )
                 }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
               >
                 <option value="DAY">
                   บาท / วัน
@@ -854,7 +988,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="อธิบายรายละเอียดการดูแล..."
-                className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm leading-6 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm leading-6 outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
               />
             </div>
           </div>
@@ -869,7 +1003,7 @@ export default function SitterServicesPage() {
             onClick={() =>
               void handleSave()
             }
-            className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 text-sm font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -885,9 +1019,11 @@ export default function SitterServicesPage() {
           </button>
         </section>
 
-        {/* SERVICES */}
+        {/* =================================================
+         * SERVICES
+         * =============================================== */}
 
-        <section className="mt-5">
+        <section className="mt-5 pb-10">
           <div>
             <h2 className="text-lg font-black text-purple-950">
               บริการที่สร้างไว้
@@ -906,11 +1042,17 @@ export default function SitterServicesPage() {
               <p className="mt-3 text-sm font-bold text-slate-600">
                 ยังไม่มีบริการ
               </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                เพิ่มบริการแรกของคุณได้จากแบบฟอร์มด้านบน
+              </p>
             </div>
           ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid items-stretch gap-4 md:grid-cols-2">
               {services.map(
-                (service) => {
+                (
+                  service
+                ) => {
                   const category =
                     categoryMap.get(
                       service.categoryId
@@ -921,12 +1063,14 @@ export default function SitterServicesPage() {
                       key={
                         service.id
                       }
-                      className="rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm"
+                      className="flex h-full flex-col rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm"
                     >
+                      {/* SERVICE INFO */}
+
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-black text-purple-950">
+                            <h3 className="wrap-break-word font-black text-purple-950">
                               {
                                 service.serviceName
                               }
@@ -954,7 +1098,9 @@ export default function SitterServicesPage() {
                           </p>
                         </div>
 
-                        <p className="text-lg font-black text-purple-700">
+                        {/* PRICE */}
+
+                        <p className="shrink-0 text-lg font-black text-purple-700">
                           ฿
                           {service.price.toLocaleString(
                             'th-TH'
@@ -962,13 +1108,21 @@ export default function SitterServicesPage() {
                         </p>
                       </div>
 
-                      {service.description && (
-                        <p className="mt-3 text-xs leading-6 text-slate-500">
+                      {/* DESCRIPTION */}
+
+                      {service.description ? (
+                        <p className="mt-3 wrap-break-word text-xs leading-6 text-slate-500">
                           {
                             service.description
                           }
                         </p>
+                      ) : (
+                        <p className="mt-3 text-xs text-slate-300">
+                          ไม่มีรายละเอียดเพิ่มเติม
+                        </p>
                       )}
+
+                      {/* PRICE UNIT */}
 
                       <p className="mt-2 text-[10px] text-slate-400">
                         {service.priceUnit ===
@@ -977,7 +1131,16 @@ export default function SitterServicesPage() {
                           : 'ราคาต่อวัน'}
                       </p>
 
-                      <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                      {/* =================================================
+                       * BUTTONS
+                       *
+                       * mt-auto ทำให้ปุ่มของทุก card อยู่ด้านล่างเท่ากัน
+                       * sm:grid-cols-3 ทำให้ปุ่มทั้ง 3 กว้างเท่ากัน
+                       * =============================================== */}
+
+                      <div className="mt-auto grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
+                        {/* EDIT */}
+
                         <button
                           type="button"
                           onClick={() =>
@@ -985,12 +1148,31 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700"
+                          className="
+                            inline-flex
+                            h-11
+                            w-full
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-xl
+                            bg-purple-50
+                            px-3
+                            text-xs
+                            font-bold
+                            text-purple-700
+                            transition
+                            hover:bg-purple-100
+                          "
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4 shrink-0" />
 
-                          แก้ไข
+                          <span>
+                            แก้ไข
+                          </span>
                         </button>
+
+                        {/* TOGGLE */}
 
                         <button
                           type="button"
@@ -1003,17 +1185,38 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-50"
+                          className="
+                            inline-flex
+                            h-11
+                            w-full
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-xl
+                            bg-slate-100
+                            px-3
+                            text-xs
+                            font-bold
+                            text-slate-600
+                            transition
+                            hover:bg-slate-200
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                          "
                         >
                           {togglingId ===
                           service.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                           ) : null}
 
-                          {service.isActive
-                            ? 'ปิดบริการ'
-                            : 'เปิดบริการ'}
+                          <span className="whitespace-nowrap">
+                            {service.isActive
+                              ? 'ปิดบริการ'
+                              : 'เปิดบริการ'}
+                          </span>
                         </button>
+
+                        {/* DELETE */}
 
                         <button
                           type="button"
@@ -1026,16 +1229,35 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-50"
+                          className="
+                            inline-flex
+                            h-11
+                            w-full
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-xl
+                            bg-red-50
+                            px-3
+                            text-xs
+                            font-bold
+                            text-red-600
+                            transition
+                            hover:bg-red-100
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                          "
                         >
                           {deletingId ===
                           service.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                           ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4 shrink-0" />
                           )}
 
-                          ลบ
+                          <span>
+                            ลบ
+                          </span>
                         </button>
                       </div>
                     </article>
@@ -1047,5 +1269,140 @@ export default function SitterServicesPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+/* =========================================================
+ * TOAST NOTIFICATION
+ * ======================================================= */
+
+interface ToastNotificationProps {
+  message: string;
+  error: string;
+  onCloseMessage: () => void;
+  onCloseError: () => void;
+}
+
+function ToastNotification({
+  message,
+  error,
+  onCloseMessage,
+  onCloseError,
+}: ToastNotificationProps) {
+  if (
+    !message &&
+    !error
+  ) {
+    return null;
+  }
+
+  return (
+    <div
+      className="
+        pointer-events-none
+        fixed
+        right-4
+        top-4
+        z-9999
+        flex
+        w-[calc(100%-2rem)]
+        max-w-sm
+        flex-col
+        gap-3
+        sm:right-6
+        sm:top-6
+      "
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {/* SUCCESS */}
+
+      {message && (
+        <div
+          className="
+            pointer-events-auto
+            flex
+            items-start
+            gap-3
+            rounded-2xl
+            border
+            border-emerald-200
+            bg-white
+            p-4
+            shadow-xl
+          "
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-slate-800">
+              สำเร็จ
+            </p>
+
+            <p className="mt-1 wrap-break-word text-xs leading-5 text-slate-500">
+              {message}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onCloseMessage
+            }
+            className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="ปิดการแจ้งเตือน"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ERROR */}
+
+      {error && (
+        <div
+          className="
+            pointer-events-auto
+            flex
+            items-start
+            gap-3
+            rounded-2xl
+            border
+            border-red-200
+            bg-white
+            p-4
+            shadow-xl
+          "
+          role="alert"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-slate-800">
+              ไม่สามารถดำเนินการได้
+            </p>
+
+            <p className="mt-1 wrap-break-word text-xs leading-5 text-slate-500">
+              {error}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onCloseError
+            }
+            className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="ปิดการแจ้งเตือน"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

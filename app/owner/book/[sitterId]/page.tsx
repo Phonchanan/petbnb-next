@@ -3,8 +3,10 @@
 'use client';
 
 import {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -18,6 +20,7 @@ import {
   Loader2,
   PawPrint,
   UserRound,
+  X,
 } from 'lucide-react';
 
 import {
@@ -28,6 +31,7 @@ import {
 
 import { supabase } from '@/lib/supabase/client';
 import { AuthService } from '@/lib/auth';
+import { BookingService } from '@/lib/supabase/bookingService';
 
 /* =========================================================
  * TYPES
@@ -70,24 +74,6 @@ interface ProfileRow {
   avatar_url: string | null;
 }
 
-interface BookingInsert {
-  owner_id: string;
-  sitter_id: string;
-  pet_id: string;
-  service_id: string;
-
-  start_date: string;
-  end_date: string;
-
-  total_price: number;
-  status: 'PENDING';
-
-  owner_note: string | null;
-
-  daily_rate: number;
-  pet_count: number;
-}
-
 /* =========================================================
  * HELPERS
  * ======================================================= */
@@ -118,6 +104,11 @@ function getTodayString() {
   return `${year}-${month}-${day}`;
 }
 
+/*
+ * ปัจจุบันคิดแบบ inclusive
+ * เช่น 1 - 1 = 1 วัน
+ *     1 - 2 = 2 วัน
+ */
 function calculateDays(
   startDate: string,
   endDate: string
@@ -179,10 +170,10 @@ function getCategoryLabel(
       return 'สัตว์เลี้ยงขนาดเล็ก';
 
     case 'REPTILES_AMPHIBIANS_AQUATICS':
-      return 'สัตว์เลื้อยคลานและสัตว์น้ำ';
+      return 'สัตว์เลื้อยคลาน สัตว์สะเทินน้ำสะเทินบก และสัตว์น้ำ';
 
     case 'ORNAMENTAL_BIRDS_AVIANS':
-      return 'นกและสัตว์ปีก';
+      return 'นกสวยงามและสัตว์ปีก';
 
     default:
       return categoryId;
@@ -227,6 +218,32 @@ function formatCurrency(
   ).format(value);
 }
 
+function getPriceUnitLabel(
+  priceUnit: string
+) {
+  if (
+    priceUnit ===
+    'NIGHT'
+  ) {
+    return 'บาท / คืน';
+  }
+
+  return 'บาท / วัน';
+}
+
+function getSummaryRateLabel(
+  priceUnit: string
+) {
+  if (
+    priceUnit ===
+    'NIGHT'
+  ) {
+    return 'ราคาต่อคืน';
+  }
+
+  return 'ราคาต่อวัน';
+}
+
 /* =========================================================
  * PAGE
  * ======================================================= */
@@ -241,11 +258,10 @@ export default function OwnerBookPage() {
   const searchParams =
     useSearchParams();
 
-  /* =======================================================
-   * สำคัญ:
-   * โฟลเดอร์คือ [sitterId]
-   * ดังนั้นต้องอ่าน params.sitterId
-   * ===================================================== */
+  /*
+   * Route:
+   * /owner/book/[sitterId]
+   */
 
   const sitterId =
     typeof params.sitterId ===
@@ -332,9 +348,111 @@ export default function OwnerBookPage() {
   ] = useState('');
 
   const [
-    success,
-    setSuccess,
+    successMessage,
+    setSuccessMessage,
+  ] = useState('');
+
+  const [
+    bookingCreated,
+    setBookingCreated,
   ] = useState(false);
+
+  /* =======================================================
+   * TOAST
+   * ===================================================== */
+
+  const toastTimerRef =
+    useRef<
+      ReturnType<
+        typeof setTimeout
+      > | null
+    >(null);
+
+  const redirectTimerRef =
+    useRef<
+      ReturnType<
+        typeof setTimeout
+      > | null
+    >(null);
+
+  const clearToastTimer =
+    useCallback(() => {
+      if (
+        toastTimerRef.current
+      ) {
+        clearTimeout(
+          toastTimerRef.current
+        );
+
+        toastTimerRef.current =
+          null;
+      }
+    }, []);
+
+  const showSuccess =
+    useCallback(
+      (
+        text: string
+      ) => {
+        clearToastTimer();
+
+        setError('');
+        setSuccessMessage(
+          text
+        );
+
+        toastTimerRef.current =
+          setTimeout(() => {
+            setSuccessMessage(
+              ''
+            );
+
+            toastTimerRef.current =
+              null;
+          }, 4000);
+      },
+      [clearToastTimer]
+    );
+
+  const showError =
+    useCallback(
+      (
+        text: string
+      ) => {
+        clearToastTimer();
+
+        setSuccessMessage(
+          ''
+        );
+
+        setError(
+          text
+        );
+
+        toastTimerRef.current =
+          setTimeout(() => {
+            setError('');
+
+            toastTimerRef.current =
+              null;
+          }, 5500);
+      },
+      [clearToastTimer]
+    );
+
+  useEffect(() => {
+    return () => {
+      clearToastTimer();
+
+      if (
+        redirectTimerRef.current
+      ) {
+        clearTimeout(
+          redirectTimerRef.current
+        );
+      }
+    };
+  }, [clearToastTimer]);
 
   /* =======================================================
    * LOAD PAGE
@@ -344,7 +462,10 @@ export default function OwnerBookPage() {
     const loadPage =
       async () => {
         try {
-          setLoading(true);
+          setLoading(
+            true
+          );
+
           setError('');
 
           /* AUTH */
@@ -356,6 +477,7 @@ export default function OwnerBookPage() {
             router.replace(
               '/login'
             );
+
             return;
           }
 
@@ -365,7 +487,10 @@ export default function OwnerBookPage() {
               .toUpperCase() !==
             'OWNER'
           ) {
-            router.replace('/');
+            router.replace(
+              '/'
+            );
+
             return;
           }
 
@@ -385,7 +510,9 @@ export default function OwnerBookPage() {
             );
           }
 
-          /* SITTER */
+          /* ===============================================
+           * SITTER
+           * ============================================= */
 
           const {
             data: sitterData,
@@ -406,13 +533,17 @@ export default function OwnerBookPage() {
             )
             .maybeSingle();
 
-          if (sitterError) {
+          if (
+            sitterError
+          ) {
             throw new Error(
               sitterError.message
             );
           }
 
-          if (!sitterData) {
+          if (
+            !sitterData
+          ) {
             throw new Error(
               'ไม่พบผู้รับฝาก'
             );
@@ -441,13 +572,17 @@ export default function OwnerBookPage() {
             sitterRow
           );
 
-          /* SITTER PROFILE */
+          /* ===============================================
+           * SITTER USER PROFILE
+           * ============================================= */
 
           const {
             data: sitterUserData,
             error: sitterUserError,
           } = await supabase
-            .from('profiles')
+            .from(
+              'profiles'
+            )
             .select(`
               id,
               display_name,
@@ -475,7 +610,9 @@ export default function OwnerBookPage() {
               | null
           );
 
-          /* SERVICE */
+          /* ===============================================
+           * SERVICE
+           * ============================================= */
 
           const {
             data: serviceData,
@@ -520,7 +657,7 @@ export default function OwnerBookPage() {
             !serviceData
           ) {
             throw new Error(
-              'ไม่พบบริการที่เลือก'
+              'ไม่พบบริการที่เลือก หรือบริการนี้ถูกปิดแล้ว'
             );
           }
 
@@ -531,13 +668,17 @@ export default function OwnerBookPage() {
             serviceRow
           );
 
-          /* OWNER PETS */
+          /* ===============================================
+           * OWNER PETS
+           * ============================================= */
 
           const {
             data: petData,
             error: petError,
           } = await supabase
-            .from('pets')
+            .from(
+              'pets'
+            )
             .select(`
               id,
               owner_id,
@@ -568,7 +709,9 @@ export default function OwnerBookPage() {
               }
             );
 
-          if (petError) {
+          if (
+            petError
+          ) {
             throw new Error(
               petError.message
             );
@@ -602,7 +745,9 @@ export default function OwnerBookPage() {
               : 'ไม่สามารถโหลดข้อมูลการจองได้'
           );
         } finally {
-          setLoading(false);
+          setLoading(
+            false
+          );
         }
       };
 
@@ -662,38 +807,67 @@ export default function OwnerBookPage() {
 
   const handleSubmit =
     async () => {
+      /*
+       * ป้องกัน double click
+       */
+
+      if (
+        submitting ||
+        bookingCreated
+      ) {
+        return;
+      }
+
       if (
         !ownerId ||
         !sitter ||
         !service
       ) {
+        showError(
+          'ข้อมูลการจองไม่ครบถ้วน'
+        );
+
         return;
       }
 
       if (
         !selectedPetId
       ) {
-        setError(
+        showError(
           'กรุณาเลือกสัตว์เลี้ยง'
         );
+
         return;
       }
 
       if (
         !startDate
       ) {
-        setError(
+        showError(
           'กรุณาเลือกวันที่เริ่มฝาก'
         );
+
         return;
       }
 
       if (
         !endDate
       ) {
-        setError(
+        showError(
           'กรุณาเลือกวันที่รับกลับ'
         );
+
+        return;
+      }
+
+      if (
+        startDate <
+        today
+      ) {
+        showError(
+          'วันที่เริ่มฝากต้องไม่เป็นวันที่ผ่านมาแล้ว'
+        );
+
         return;
       }
 
@@ -701,9 +875,10 @@ export default function OwnerBookPage() {
         endDate <
         startDate
       ) {
-        setError(
+        showError(
           'วันที่รับกลับต้องไม่น้อยกว่าวันที่เริ่มฝาก'
         );
+
         return;
       }
 
@@ -711,18 +886,31 @@ export default function OwnerBookPage() {
         numberOfDays <=
         0
       ) {
-        setError(
+        showError(
           'ช่วงวันที่ไม่ถูกต้อง'
         );
+
         return;
       }
 
       if (
         !selectedPet
       ) {
-        setError(
+        showError(
           'ไม่พบข้อมูลสัตว์เลี้ยง'
         );
+
+        return;
+      }
+
+      if (
+        selectedPet.owner_id !==
+        ownerId
+      ) {
+        showError(
+          'สัตว์เลี้ยงที่เลือกไม่ใช่ของบัญชีนี้'
+        );
+
         return;
       }
 
@@ -730,103 +918,117 @@ export default function OwnerBookPage() {
         selectedPet.category_id !==
         service.category_id
       ) {
-        setError(
+        showError(
           'ประเภทสัตว์ไม่ตรงกับบริการที่เลือก'
         );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          dailyRate
+        ) ||
+        dailyRate <= 0
+      ) {
+        showError(
+          'ราคาบริการไม่ถูกต้อง'
+        );
+
+        return;
+      }
+
+      if (
+        !Number.isFinite(
+          totalPrice
+        ) ||
+        totalPrice <= 0
+      ) {
+        showError(
+          'ยอดรวมการจองไม่ถูกต้อง'
+        );
+
         return;
       }
 
       try {
-        setSubmitting(true);
+        setSubmitting(
+          true
+        );
+
+        clearToastTimer();
+
         setError('');
+        setSuccessMessage(
+          ''
+        );
 
-        const payload:
-          BookingInsert = {
-          owner_id:
-            ownerId,
+        /*
+         * ใช้ BookingService
+         * แทน insert ตรงในหน้า
+         */
 
-          sitter_id:
+        await BookingService.createBooking({
+          ownerId,
+
+          sitterId:
             sitter.id,
 
-          pet_id:
+          petId:
             selectedPet.id,
 
-          service_id:
+          serviceId:
             service.id,
 
-          start_date:
-            startDate,
+          startDate,
 
-          end_date:
-            endDate,
+          endDate,
 
-          total_price:
-            totalPrice,
+          dailyRate,
 
-          status:
-            'PENDING',
+          totalPrice,
 
-          owner_note:
+          ownerNote:
             ownerNote.trim() ||
-            null,
+            undefined,
 
-          daily_rate:
-            dailyRate,
-
-          pet_count:
+          petCount:
             1,
-        };
+        });
 
-        const {
-          data,
-          error:
-            bookingError,
-        } = await supabase
-          .from('bookings')
-          .insert(payload)
-          .select(`
-            id
-          `)
-          .single();
+        setBookingCreated(
+          true
+        );
 
-        if (
-          bookingError
-        ) {
-          console.error(
-            'CREATE BOOKING ERROR:',
-            bookingError
-          );
+        showSuccess(
+          'ส่งคำขอจองเรียบร้อยแล้ว กำลังพาไปหน้ารายการจอง'
+        );
 
-          throw new Error(
-            bookingError.message ||
-              'ไม่สามารถสร้างการจองได้'
-          );
-        }
+        /*
+         * รอให้ User เห็น Toast ก่อน redirect
+         */
 
-        if (!data) {
-          throw new Error(
-            'ไม่พบข้อมูลการจองที่สร้าง'
-          );
-        }
-
-        setSuccess(true);
-
-        window.setTimeout(
-          () => {
+        redirectTimerRef.current =
+          setTimeout(() => {
             router.push(
               '/owner/bookings'
             );
-          },
-          1200
-        );
+          }, 1500);
       } catch (err) {
-        setError(
+        console.error(
+          'CREATE BOOKING ERROR:',
+          err
+        );
+
+        showError(
           err instanceof Error
             ? err.message
             : 'ไม่สามารถยืนยันการจองได้'
         );
       } finally {
-        setSubmitting(false);
+        setSubmitting(
+          false
+        );
       }
     };
 
@@ -836,13 +1038,36 @@ export default function OwnerBookPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex min-h-105 flex-col items-center justify-center gap-3">
-          <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <ToastNotification
+          message={
+            successMessage
+          }
+          error={
+            error
+          }
+          onCloseMessage={() => {
+            clearToastTimer();
 
-          <p className="text-sm text-slate-400">
-            กำลังเตรียมข้อมูลการจอง...
-          </p>
+            setSuccessMessage(
+              ''
+            );
+          }}
+          onCloseError={() => {
+            clearToastTimer();
+
+            setError('');
+          }}
+        />
+
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="flex min-h-105 flex-col items-center justify-center gap-3">
+            <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
+
+            <p className="text-sm text-slate-400">
+              กำลังเตรียมข้อมูลการจอง...
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -854,22 +1079,47 @@ export default function OwnerBookPage() {
 
   if (
     error &&
-    (!service ||
-      !sitter)
+    (
+      !service ||
+      !sitter
+    )
   ) {
     return (
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/owner/search"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-purple-700"
-        >
-          <ArrowLeft className="h-4 w-4" />
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <ToastNotification
+          message=""
+          error={
+            error
+          }
+          onCloseMessage={() => {}}
+          onCloseError={() => {
+            clearToastTimer();
 
-          กลับไปค้นหาผู้รับฝาก
-        </Link>
+            setError('');
+          }}
+        />
 
-        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
-          {error}
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <Link
+            href="/owner/search"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 transition hover:text-purple-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+
+            กลับไปค้นหาผู้รับฝาก
+          </Link>
+
+          <section className="mt-5 rounded-[28px] border border-rose-100 bg-white p-8 text-center shadow-sm">
+            <AlertCircle className="mx-auto h-10 w-10 text-rose-400" />
+
+            <h1 className="mt-4 text-lg font-black text-purple-950">
+              ไม่สามารถทำการจองได้
+            </h1>
+
+            <p className="mt-2 text-sm text-slate-500">
+              {error}
+            </p>
+          </section>
         </div>
       </main>
     );
@@ -892,459 +1142,558 @@ export default function OwnerBookPage() {
    * ===================================================== */
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
-      {/* BACK */}
+    <main className="min-h-screen bg-[#FAF8FE]">
+      {/* ===================================================
+       * TOAST
+       * ================================================= */}
 
-      <Link
-        href={`/owner/search/${sitter.id}`}
-        className="inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 transition hover:text-purple-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
+      <ToastNotification
+        message={
+          successMessage
+        }
+        error={
+          error
+        }
+        onCloseMessage={() => {
+          clearToastTimer();
 
-        กลับหน้าโปรไฟล์ Sitter
-      </Link>
+          setSuccessMessage(
+            ''
+          );
+        }}
+        onCloseError={() => {
+          clearToastTimer();
 
-      {/* HEADER */}
+          setError('');
+        }}
+      />
 
-      <section className="mt-5 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
-        <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
-          <CalendarDays className="h-4 w-4" />
+      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
+        {/* BACK */}
 
-          Booking
-        </div>
+        <Link
+          href={`/owner/search/${sitter.id}`}
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 transition hover:text-purple-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
 
-        <h1 className="mt-3 text-2xl font-black text-purple-950 sm:text-3xl">
-          จองบริการฝากสัตว์เลี้ยง
-        </h1>
+          กลับหน้าโปรไฟล์ Sitter
+        </Link>
 
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          เลือกสัตว์และวันที่ฝาก
-          จากนั้นตรวจสอบรายละเอียดก่อนส่งคำขอ
-        </p>
-      </section>
+        {/* =================================================
+         * HEADER
+         * =============================================== */}
 
-      {/* SUCCESS */}
+        <section className="mt-5 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
+            <CalendarDays className="h-4 w-4" />
 
-      {success && (
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-
-          <div>
-            <p className="text-sm font-bold text-emerald-800">
-              ส่งคำขอจองเรียบร้อยแล้ว
-            </p>
-
-            <p className="mt-1 text-xs text-emerald-700">
-              กำลังพาไปหน้ารายการจอง...
-            </p>
+            Booking
           </div>
-        </div>
-      )}
 
-      {/* ERROR */}
+          <h1 className="mt-3 text-2xl font-black text-purple-950 sm:text-3xl">
+            จองบริการฝากสัตว์เลี้ยง
+          </h1>
 
-      {error && (
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            เลือกสัตว์เลี้ยงและวันที่ต้องการฝาก
+            จากนั้นตรวจสอบรายละเอียดก่อนส่งคำขอไปยัง Sitter
+          </p>
+        </section>
 
-          {error}
-        </div>
-      )}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+          {/* =================================================
+           * LEFT
+           * =============================================== */}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        {/* LEFT */}
+          <div className="space-y-5">
+            {/* ===============================================
+             * SITTER
+             * ============================================= */}
 
-        <div className="space-y-5">
-          {/* SITTER */}
+            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black text-purple-950">
+                ผู้รับฝาก
+              </h2>
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black text-purple-950">
-              ผู้รับฝาก
-            </h2>
-
-            <div className="mt-4 flex items-center gap-4">
-              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-purple-100">
-                {sitterUser?.avatar_url ? (
-                  <img
-                    src={
-                      sitterUser.avatar_url
-                    }
-                    alt={
-                      sitterName
-                    }
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <UserRound className="h-7 w-7 text-purple-400" />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="font-black text-purple-950">
-                  {sitterName}
-                </p>
-
-                <p className="mt-1 text-xs text-emerald-600">
-                  พร้อมรับฝาก
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* SERVICE */}
-
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black text-purple-950">
-              บริการที่เลือก
-            </h2>
-
-            <div className="mt-4 rounded-2xl bg-[#FAF8FE] p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="font-black text-purple-950">
-                    {
-                      service.service_name
-                    }
-                  </h3>
-
-                  <p className="mt-1 text-xs text-purple-600">
-                    {getCategoryLabel(
-                      service.category_id
-                    )}
-                  </p>
-
-                  {service.description && (
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      {
-                        service.description
+              <div className="mt-4 flex items-center gap-4">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-purple-100">
+                  {sitterUser?.avatar_url ? (
+                    <img
+                      src={
+                        sitterUser.avatar_url
                       }
-                    </p>
+                      alt={
+                        sitterName
+                      }
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <UserRound className="h-7 w-7 text-purple-400" />
+                    </div>
                   )}
                 </div>
 
-                <div className="shrink-0 sm:text-right">
-                  <p className="text-lg font-black text-purple-700">
-                    {formatCurrency(
-                      dailyRate
-                    )}
+                <div>
+                  <p className="font-black text-purple-950">
+                    {sitterName}
                   </p>
 
-                  <p className="text-[10px] text-slate-400">
-                    {
-                      service.price_unit
-                    }
-                  </p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+
+                    <p className="text-xs font-bold text-emerald-600">
+                      พร้อมรับฝาก
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* PET */}
+            {/* ===============================================
+             * SERVICE
+             * ============================================= */}
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black text-purple-950">
-              เลือกสัตว์เลี้ยง
-            </h2>
+            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black text-purple-950">
+                บริการที่เลือก
+              </h2>
 
-            <p className="mt-1 text-xs text-slate-400">
-              แสดงเฉพาะสัตว์ที่ตรงกับประเภทบริการ
-            </p>
+              <div className="mt-4 rounded-2xl bg-[#FAF8FE] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-black text-purple-950">
+                      {
+                        service.service_name
+                      }
+                    </h3>
 
-            {pets.length ===
-            0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-purple-200 bg-purple-50/30 p-6 text-center">
-                <PawPrint className="mx-auto h-7 w-7 text-purple-300" />
+                    <p className="mt-1 text-xs font-bold text-purple-600">
+                      {getCategoryLabel(
+                        service.category_id
+                      )}
+                    </p>
 
-                <p className="mt-3 text-sm font-bold text-slate-600">
-                  ยังไม่มีสัตว์เลี้ยงที่ใช้บริการนี้ได้
-                </p>
+                    {service.description && (
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        {
+                          service.description
+                        }
+                      </p>
+                    )}
+                  </div>
 
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  กรุณาเพิ่มสัตว์ประเภท{' '}
-                  {getCategoryLabel(
-                    service.category_id
-                  )}{' '}
-                  ก่อนทำการจอง
-                </p>
+                  <div className="shrink-0 sm:text-right">
+                    <p className="text-lg font-black text-purple-700">
+                      {formatCurrency(
+                        dailyRate
+                      )}
+                    </p>
 
-                <Link
-                  href="/owner/pets"
-                  className="mt-4 inline-flex rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white"
-                >
-                  จัดการสัตว์เลี้ยง
-                </Link>
+                    <p className="text-[10px] text-slate-400">
+                      {getPriceUnitLabel(
+                        service.price_unit
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {pets.map(
-                  (pet) => {
-                    const selected =
-                      pet.id ===
-                      selectedPetId;
+            </section>
 
-                    return (
-                      <button
-                        key={
-                          pet.id
-                        }
-                        type="button"
-                        onClick={() =>
-                          setSelectedPetId(
+            {/* ===============================================
+             * PET
+             * ============================================= */}
+
+            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black text-purple-950">
+                เลือกสัตว์เลี้ยง
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-400">
+                แสดงเฉพาะสัตว์เลี้ยงที่ตรงกับประเภทบริการ
+              </p>
+
+              {pets.length ===
+              0 ? (
+                <div className="mt-4 rounded-2xl border border-dashed border-purple-200 bg-purple-50/30 p-6 text-center">
+                  <PawPrint className="mx-auto h-7 w-7 text-purple-300" />
+
+                  <p className="mt-3 text-sm font-bold text-slate-600">
+                    ยังไม่มีสัตว์เลี้ยงที่ใช้บริการนี้ได้
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    กรุณาเพิ่มสัตว์ประเภท{' '}
+                    <span className="font-bold text-purple-600">
+                      {getCategoryLabel(
+                        service.category_id
+                      )}
+                    </span>{' '}
+                    ก่อนทำการจอง
+                  </p>
+
+                  <Link
+                    href="/owner/pets"
+                    className="mt-4 inline-flex rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
+                  >
+                    จัดการสัตว์เลี้ยง
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {pets.map(
+                    (
+                      pet
+                    ) => {
+                      const selected =
+                        pet.id ===
+                        selectedPetId;
+
+                      return (
+                        <button
+                          key={
                             pet.id
-                          )
-                        }
-                        className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                          selected
-                            ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100'
-                            : 'border-slate-100 bg-white hover:border-purple-200'
-                        }`}
-                      >
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-purple-100">
-                          {pet.photo_url ? (
-                            <img
-                              src={
-                                pet.photo_url
-                              }
-                              alt={
+                          }
+                          type="button"
+                          disabled={
+                            bookingCreated
+                          }
+                          onClick={() =>
+                            setSelectedPetId(
+                              pet.id
+                            )
+                          }
+                          className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                            selected
+                              ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100'
+                              : 'border-slate-100 bg-white hover:border-purple-200'
+                          }`}
+                        >
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-purple-100">
+                            {pet.photo_url ? (
+                              <img
+                                src={
+                                  pet.photo_url
+                                }
+                                alt={
+                                  pet.name
+                                }
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <PawPrint className="h-5 w-5 text-purple-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-purple-950">
+                              {
                                 pet.name
                               }
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <PawPrint className="h-5 w-5 text-purple-400" />
-                            </div>
+                            </p>
+
+                            <p className="mt-1 truncate text-[10px] text-slate-400">
+                              {pet.breed ||
+                                getCategoryLabel(
+                                  pet.category_id
+                                )}
+                            </p>
+                          </div>
+
+                          {selected && (
+                            <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-purple-600" />
                           )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-black text-purple-950">
-                            {
-                              pet.name
-                            }
-                          </p>
-
-                          <p className="mt-1 text-[10px] text-slate-400">
-                            {pet.breed ||
-                              getCategoryLabel(
-                                pet.category_id
-                              )}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* DATES */}
-
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black text-purple-950">
-              วันที่ฝากเลี้ยง
-            </h2>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-xs font-bold text-slate-600">
-                  วันที่เริ่มฝาก
-                </label>
-
-                <input
-                  type="date"
-                  min={today}
-                  value={
-                    startDate
-                  }
-                  onChange={(
-                    event
-                  ) => {
-                    const value =
-                      event.target.value;
-
-                    setStartDate(
-                      value
-                    );
-
-                    if (
-                      endDate &&
-                      endDate <
-                        value
-                    ) {
-                      setEndDate(
-                        value
+                        </button>
                       );
                     }
-                  }}
-                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                />
-              </div>
+                  )}
+                </div>
+              )}
+            </section>
 
-              <div>
-                <label className="mb-2 block text-xs font-bold text-slate-600">
-                  วันที่รับกลับ
-                </label>
+            {/* ===============================================
+             * DATES
+             * ============================================= */}
 
-                <input
-                  type="date"
-                  min={
-                    startDate ||
-                    today
-                  }
-                  value={
-                    endDate
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setEndDate(
-                      event.target
-                        .value
-                    )
-                  }
-                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                />
-              </div>
-            </div>
+            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black text-purple-950">
+                วันที่ฝากเลี้ยง
+              </h2>
 
-            {numberOfDays >
-              0 && (
-              <p className="mt-3 text-xs text-purple-600">
-                ระยะเวลาฝากทั้งหมด{' '}
-                <span className="font-black">
-                  {
-                    numberOfDays
-                  }{' '}
-                  วัน
-                </span>
-              </p>
-            )}
-          </section>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-xs font-bold text-slate-600">
+                    วันที่เริ่มฝาก
+                  </label>
 
-          {/* NOTE */}
+                  <input
+                    type="date"
+                    min={
+                      today
+                    }
+                    disabled={
+                      bookingCreated
+                    }
+                    value={
+                      startDate
+                    }
+                    onChange={(
+                      event
+                    ) => {
+                      const value =
+                        event.target.value;
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black text-purple-950">
-              หมายเหตุถึง Sitter
-            </h2>
+                      setStartDate(
+                        value
+                      );
 
-            <textarea
-              rows={5}
-              value={
-                ownerNote
-              }
-              onChange={(
-                event
-              ) =>
-                setOwnerNote(
-                  event.target.value
-                )
-              }
-              placeholder="ข้อมูลเพิ่มเติมที่ต้องการแจ้ง Sitter..."
-              className="mt-4 w-full resize-none rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm leading-6 outline-none placeholder:text-slate-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-            />
-          </section>
-        </div>
+                      if (
+                        endDate &&
+                        endDate <
+                          value
+                      ) {
+                        setEndDate(
+                          value
+                        );
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
 
-        {/* SUMMARY */}
+                <div>
+                  <label className="mb-2 block text-xs font-bold text-slate-600">
+                    วันที่รับกลับ
+                  </label>
 
-        <aside>
-          <div className="sticky top-24 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-            <h2 className="font-black text-purple-950">
-              สรุปการจอง
-            </h2>
-
-            <div className="mt-5 space-y-4">
-              <SummaryRow
-                label="บริการ"
-                value={
-                  service.service_name
-                }
-              />
-
-              <SummaryRow
-                label="สัตว์เลี้ยง"
-                value={
-                  selectedPet
-                    ?.name ||
-                  '-'
-                }
-              />
-
-              <SummaryRow
-                label="ราคาต่อวัน"
-                value={formatCurrency(
-                  dailyRate
-                )}
-              />
-
-              <SummaryRow
-                label="จำนวนวัน"
-                value={
-                  numberOfDays >
-                  0
-                    ? `${numberOfDays} วัน`
-                    : '-'
-                }
-              />
-
-              <div className="border-t border-slate-100 pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-600">
-                    ยอดรวม
-                  </span>
-
-                  <span className="text-2xl font-black text-purple-700">
-                    {formatCurrency(
-                      totalPrice
-                    )}
-                  </span>
+                  <input
+                    type="date"
+                    min={
+                      startDate ||
+                      today
+                    }
+                    disabled={
+                      bookingCreated
+                    }
+                    value={
+                      endDate
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setEndDate(
+                        event.target
+                          .value
+                      )
+                    }
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
                 </div>
               </div>
-            </div>
 
-            <button
-              type="button"
-              disabled={
-                submitting ||
-                success ||
-                pets.length ===
-                  0 ||
-                !selectedPetId ||
-                !startDate ||
-                !endDate
-              }
-              onClick={() =>
-                void handleSubmit()
-              }
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3.5 text-sm font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-
-                  กำลังส่งคำขอ...
-                </>
-              ) : (
-                <>
+              {numberOfDays >
+                0 && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-2 text-xs text-purple-700">
                   <CalendarDays className="h-4 w-4" />
 
-                  ยืนยันการจอง
-                </>
-              )}
-            </button>
+                  ระยะเวลาฝากทั้งหมด
 
-            <p className="mt-3 text-center text-[10px] leading-5 text-slate-400">
-              หลังยืนยัน
-              คำขอจะถูกส่งไปยัง Sitter
-              และมีสถานะรอการตอบรับ
-            </p>
+                  <span className="font-black">
+                    {
+                      numberOfDays
+                    }{' '}
+                    วัน
+                  </span>
+                </div>
+              )}
+            </section>
+
+            {/* ===============================================
+             * NOTE
+             * ============================================= */}
+
+            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black text-purple-950">
+                หมายเหตุถึง Sitter
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-400">
+                ไม่จำเป็นต้องกรอก หากไม่มีข้อมูลเพิ่มเติม
+              </p>
+
+              <textarea
+                rows={5}
+                maxLength={
+                  1000
+                }
+                disabled={
+                  bookingCreated
+                }
+                value={
+                  ownerNote
+                }
+                onChange={(
+                  event
+                ) =>
+                  setOwnerNote(
+                    event.target.value
+                  )
+                }
+                placeholder="เช่น น้องต้องกินยาหลังอาหาร หรือมีพฤติกรรมที่ต้องระวัง..."
+                className="mt-4 w-full resize-none rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm leading-6 outline-none placeholder:text-slate-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+
+              <p className="mt-2 text-right text-[10px] text-slate-400">
+                {
+                  ownerNote.length
+                }
+                /1000
+              </p>
+            </section>
           </div>
-        </aside>
+
+          {/* =================================================
+           * SUMMARY
+           * =============================================== */}
+
+          <aside>
+            <div className="sticky top-24 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+              <h2 className="font-black text-purple-950">
+                สรุปการจอง
+              </h2>
+
+              <div className="mt-5 space-y-4">
+                <SummaryRow
+                  label="ผู้รับฝาก"
+                  value={
+                    sitterName
+                  }
+                />
+
+                <SummaryRow
+                  label="บริการ"
+                  value={
+                    service.service_name
+                  }
+                />
+
+                <SummaryRow
+                  label="สัตว์เลี้ยง"
+                  value={
+                    selectedPet
+                      ?.name ||
+                    '-'
+                  }
+                />
+
+                <SummaryRow
+                  label={
+                    getSummaryRateLabel(
+                      service.price_unit
+                    )
+                  }
+                  value={
+                    formatCurrency(
+                      dailyRate
+                    )
+                  }
+                />
+
+                <SummaryRow
+                  label="ระยะเวลา"
+                  value={
+                    numberOfDays >
+                    0
+                      ? `${numberOfDays} วัน`
+                      : '-'
+                  }
+                />
+
+                <SummaryRow
+                  label="วันที่เริ่ม"
+                  value={
+                    startDate ||
+                    '-'
+                  }
+                />
+
+                <SummaryRow
+                  label="วันที่รับกลับ"
+                  value={
+                    endDate ||
+                    '-'
+                  }
+                />
+
+                <div className="border-t border-slate-100 pt-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-bold text-slate-600">
+                      ยอดรวม
+                    </span>
+
+                    <span className="text-2xl font-black text-purple-700">
+                      {formatCurrency(
+                        totalPrice
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  submitting ||
+                  bookingCreated ||
+                  pets.length ===
+                    0 ||
+                  !selectedPetId ||
+                  !startDate ||
+                  !endDate ||
+                  numberOfDays <=
+                    0
+                }
+                onClick={() =>
+                  void handleSubmit()
+                }
+                className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 text-sm font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+
+                    กำลังส่งคำขอ...
+                  </>
+                ) : bookingCreated ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+
+                    ส่งคำขอแล้ว
+                  </>
+                ) : (
+                  <>
+                    <CalendarDays className="h-4 w-4" />
+
+                    ยืนยันการจอง
+                  </>
+                )}
+              </button>
+
+              <div className="mt-3 rounded-xl bg-purple-50/60 px-3 py-2.5">
+                <p className="text-center text-[10px] leading-5 text-slate-500">
+                  หลังยืนยัน คำขอจะถูกส่งไปยัง Sitter
+                  และมีสถานะ{' '}
+                  <span className="font-bold text-amber-600">
+                    รอการตอบรับ
+                  </span>
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );
@@ -1370,6 +1719,141 @@ function SummaryRow({
       <span className="max-w-[65%] text-right text-xs font-bold text-slate-700">
         {value}
       </span>
+    </div>
+  );
+}
+
+/* =========================================================
+ * TOAST
+ * ======================================================= */
+
+interface ToastNotificationProps {
+  message: string;
+  error: string;
+  onCloseMessage: () => void;
+  onCloseError: () => void;
+}
+
+function ToastNotification({
+  message,
+  error,
+  onCloseMessage,
+  onCloseError,
+}: ToastNotificationProps) {
+  if (
+    !message &&
+    !error
+  ) {
+    return null;
+  }
+
+  return (
+    <div
+      className="
+        pointer-events-none
+        fixed
+        right-4
+        top-4
+        z-9999
+        flex
+        w-[calc(100%-2rem)]
+        max-w-sm
+        flex-col
+        gap-3
+        sm:right-6
+        sm:top-6
+      "
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {/* SUCCESS */}
+
+      {message && (
+        <div
+          className="
+            pointer-events-auto
+            flex
+            items-start
+            gap-3
+            rounded-2xl
+            border
+            border-emerald-200
+            bg-white
+            p-4
+            shadow-xl
+          "
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-slate-800">
+              สำเร็จ
+            </p>
+
+            <p className="mt-1 wrap-break-word text-xs leading-5 text-slate-500">
+              {message}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onCloseMessage
+            }
+            className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="ปิดการแจ้งเตือน"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ERROR */}
+
+      {error && (
+        <div
+          className="
+            pointer-events-auto
+            flex
+            items-start
+            gap-3
+            rounded-2xl
+            border
+            border-red-200
+            bg-white
+            p-4
+            shadow-xl
+          "
+          role="alert"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-slate-800">
+              ไม่สามารถดำเนินการได้
+            </p>
+
+            <p className="mt-1 wrap-break-word text-xs leading-5 text-slate-500">
+              {error}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onCloseError
+            }
+            className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="ปิดการแจ้งเตือน"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
