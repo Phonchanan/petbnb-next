@@ -6,7 +6,9 @@
 import {
   ChangeEvent,
   FormEvent,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -20,7 +22,6 @@ import {
   Loader2,
   Mail,
   Phone,
-  Save,
   UserRound,
   XCircle,
 } from 'lucide-react';
@@ -82,8 +83,14 @@ export default function OwnerProfilePage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const lastSavedFormRef =
+    useRef<ProfileFormState>(initialForm);
+
+  const autoSaveTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const autoSavingRef =
+    useRef(false);
 
   const [error, setError] =
     useState('');
@@ -153,7 +160,7 @@ export default function OwnerProfilePage() {
 
       setProfile(current);
 
-      setForm({
+      const loadedForm: ProfileFormState = {
         firstName:
           current.first_name || '',
 
@@ -168,7 +175,12 @@ export default function OwnerProfilePage() {
 
         bio:
           current.bio || '',
-      });
+      };
+
+      lastSavedFormRef.current =
+        loadedForm;
+
+      setForm(loadedForm);
 
       setAvatarPreview(
         current.avatar_url || null
@@ -368,12 +380,149 @@ export default function OwnerProfilePage() {
     return publicUrlData.publicUrl;
   };
 
-  const handleSave = async (
-    event: FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
+  const saveProfileAutomatically =
+    useCallback(
+      async () => {
+        if (
+          !profile ||
+          autoSavingRef.current
+        ) {
+          return;
+        }
 
+        const formHasChanged =
+          JSON.stringify(form) !==
+          JSON.stringify(
+            lastSavedFormRef.current
+          );
+
+        if (
+          !formHasChanged &&
+          !selectedAvatar
+        ) {
+          return;
+        }
+
+        if (
+          !form.firstName.trim() ||
+          !form.lastName.trim()
+        ) {
+          return;
+        }
+
+        try {
+          autoSavingRef.current =
+            true;
+
+          setError('');
+
+          let avatarUrl =
+            profile.avatar_url || '';
+
+          if (selectedAvatar) {
+            avatarUrl =
+              await uploadAvatar(
+                profile.id,
+                selectedAvatar
+              );
+          }
+
+          await ProfileService.updateProfile(
+            profile.id,
+            {
+              firstName:
+                form.firstName,
+
+              lastName:
+                form.lastName,
+
+              displayName:
+                form.displayName,
+
+              phone:
+                form.phone,
+
+              bio:
+                form.bio,
+
+              avatarUrl,
+            }
+          );
+
+          lastSavedFormRef.current = {
+            ...form,
+          };
+
+          setProfile(
+            (
+              current
+            ) =>
+              current
+                ? {
+                    ...current,
+                    first_name:
+                      form.firstName,
+                    last_name:
+                      form.lastName,
+                    display_name:
+                      form.displayName,
+                    phone:
+                      form.phone,
+                    bio:
+                      form.bio,
+                    avatar_url:
+                      avatarUrl,
+                  }
+                : current
+          );
+
+          if (selectedAvatar) {
+            setSelectedAvatar(null);
+
+            setAvatarPreview(
+              avatarUrl
+            );
+          }
+        } catch (err) {
+          console.error(
+            'AUTO SAVE PROFILE ERROR:',
+            err
+          );
+
+          setToastType('error');
+
+          setMessage(
+            err instanceof Error
+              ? err.message
+              : 'ไม่สามารถบันทึกข้อมูลโปรไฟล์ได้'
+          );
+        } finally {
+          autoSavingRef.current =
+            false;
+        }
+      },
+      [
+        profile,
+        form,
+        selectedAvatar,
+      ]
+    );
+
+  useEffect(() => {
     if (!profile) {
+      return;
+    }
+
+    const formHasChanged =
+      JSON.stringify(form) !==
+      JSON.stringify(
+        lastSavedFormRef.current
+      );
+
+    if (
+      !formHasChanged &&
+      !selectedAvatar
+    ) {
       return;
     }
 
@@ -381,74 +530,37 @@ export default function OwnerProfilePage() {
       !form.firstName.trim() ||
       !form.lastName.trim()
     ) {
-      setError(
-        'กรุณากรอกชื่อและนามสกุล'
-      );
       return;
     }
 
-    try {
-      setSaving(true);
-      setError('');
-      setMessage('');
-
-      let avatarUrl =
-        profile.avatar_url || '';
-
-      if (selectedAvatar) {
-        avatarUrl =
-          await uploadAvatar(
-            profile.id,
-            selectedAvatar
-          );
-      }
-
-      await ProfileService.updateProfile(
-        profile.id,
-        {
-          firstName:
-            form.firstName,
-
-          lastName:
-            form.lastName,
-
-          displayName:
-            form.displayName,
-
-          phone:
-            form.phone,
-
-          bio:
-            form.bio,
-
-          avatarUrl,
-        }
+    if (
+      autoSaveTimerRef.current
+    ) {
+      clearTimeout(
+        autoSaveTimerRef.current
       );
-
-      setToastType('success');
-      setMessage(
-        'บันทึกข้อมูลโปรไฟล์เรียบร้อยแล้ว ✨'
-      );
-
-      setSelectedAvatar(null);
-
-      await loadProfile();
-    } catch (err) {
-      console.error(
-        'SAVE PROFILE ERROR:',
-        err
-      );
-
-      setToastType('error');
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : 'ไม่สามารถบันทึกข้อมูลโปรไฟล์ได้'
-      );
-    } finally {
-      setSaving(false);
     }
-  };
+
+    autoSaveTimerRef.current =
+      setTimeout(() => {
+        void saveProfileAutomatically();
+      }, 700);
+
+    return () => {
+      if (
+        autoSaveTimerRef.current
+      ) {
+        clearTimeout(
+          autoSaveTimerRef.current
+        );
+      }
+    };
+  }, [
+    profile,
+    form,
+    selectedAvatar,
+    saveProfileAutomatically,
+  ]);
 
 
   const updateNotificationPreference = async (
@@ -704,14 +816,11 @@ export default function OwnerProfilePage() {
             </h2>
 
             <p className="mt-1 text-xs text-slate-400">
-              ข้อมูลนี้จะถูกบันทึกลง Supabase
+              ระบบจะบันทึกการเปลี่ยนแปลงให้อัตโนมัติ
             </p>
           </div>
 
-          <form
-            onSubmit={handleSave}
-            className="space-y-5"
-          >
+          <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label="ชื่อ"
@@ -798,32 +907,7 @@ export default function OwnerProfilePage() {
               />
             </div>
 
-            {selectedAvatar && (
-              <div className="rounded-2xl border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-700">
-                เลือกรูปใหม่แล้ว: {selectedAvatar.name}
-              </div>
-            )}
-
-            <div className="flex justify-end border-t border-purple-100 pt-5">
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex min-w-44 items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    กำลังบันทึก...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    บันทึกการเปลี่ยนแปลง
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </section>
       </div>
 
@@ -847,10 +931,6 @@ export default function OwnerProfilePage() {
               </p>
               </div>
             </div>
-
-            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-600">
-              บันทึกอัตโนมัติ
-            </span>
           </div>
 
           <div className="mt-5 flex-1 space-y-2.5">

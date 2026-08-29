@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 
 'use client';
@@ -57,28 +58,6 @@ const MAX_AVATAR_SIZE =
 /* =========================================================
  * DISTRICTS
  * ======================================================= */
-
-const SURAT_DISTRICTS = [
-  'อำเภอเมืองสุราษฎร์ธานี',
-  'อำเภอกาญจนดิษฐ์',
-  'อำเภอดอนสัก',
-  'อำเภอเกาะสมุย',
-  'อำเภอเกาะพะงัน',
-  'อำเภอไชยา',
-  'อำเภอท่าชนะ',
-  'อำเภอคีรีรัฐนิคม',
-  'อำเภอบ้านตาขุน',
-  'อำเภอพนม',
-  'อำเภอท่าฉาง',
-  'อำเภอบ้านนาสาร',
-  'อำเภอบ้านนาเดิม',
-  'อำเภอเคียนซา',
-  'อำเภอเวียงสระ',
-  'อำเภอพระแสง',
-  'อำเภอพุนพิน',
-  'อำเภอชัยบุรี',
-  'อำเภอวิภาวดี',
-];
 
 /* =========================================================
  * TYPES
@@ -585,9 +564,9 @@ export default function SitterProfilePage() {
                 province,
                 district
               `)
-              .eq(
+              .ilike(
                 'province',
-                'สุราษฎร์ธานี'
+                '%สุราษฎร์ธานี%'
               )
               .order(
                 'district',
@@ -611,15 +590,33 @@ export default function SitterProfilePage() {
                 []
               ) as unknown as LocationRow[];
 
+            const suratRows =
+              rows
+                .filter(
+                  (
+                    location
+                  ) =>
+                    Boolean(
+                      location.id
+                    ) &&
+                    Boolean(
+                      location.district
+                        ?.trim()
+                    )
+                )
+                .sort(
+                  (
+                    a,
+                    b
+                  ) =>
+                    a.district.localeCompare(
+                      b.district,
+                      'th'
+                    )
+                );
+
             setLocations(
-              rows.filter(
-                (
-                  location
-                ) =>
-                  SURAT_DISTRICTS.includes(
-                    location.district
-                  )
-              )
+              suratRows
             );
           }
 
@@ -1419,239 +1416,208 @@ export default function SitterProfilePage() {
   return (
     <main className="min-h-screen bg-[#FAF8FE]">
       {(message || error) && (
-        <div className="fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm sm:right-6 sm:top-6">
+        <div className="fixed right-4 top-20 z-50 w-[calc(100%-2rem)] max-w-sm sm:right-6">
           <div
-            className={`flex items-start gap-3 rounded-2xl border bg-white px-4 py-3 shadow-xl shadow-slate-200/50 ${
+            className={`flex items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-xs font-bold shadow-lg ${
               error
-                ? 'border-rose-200'
-                : 'border-emerald-200'
+                ? 'border-rose-200 text-rose-700'
+                : 'border-emerald-200 text-emerald-700'
             }`}
           >
-            <div
-              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
-                error
-                  ? 'bg-rose-50 text-rose-600'
-                  : 'bg-emerald-50 text-emerald-600'
-              }`}
-            >
-              {error ? (
-                <AlertCircle className="h-4 w-4" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-            </div>
+            {error ? (
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
 
-            <div className="min-w-0 flex-1">
-              <p
-                className={`text-xs font-black ${
-                  error
-                    ? 'text-rose-700'
-                    : 'text-emerald-700'
-                }`}
-              >
-                {error
-                  ? 'ไม่สามารถดำเนินการได้'
-                  : 'สำเร็จ'}
-              </p>
-
-              <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                {error || message}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setError('');
-                setMessage('');
-              }}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
-              aria-label="ปิดการแจ้งเตือน"
-            >
-              ×
-            </button>
+            <span className="leading-5">
+              {error || message}
+            </span>
           </div>
         </div>
       )}
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
-        {/* =================================================
-         * HEADER
-         * =============================================== */}
 
-        <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
-          <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-purple-100/70 blur-3xl" />
-          <div className="relative">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
-              <PawPrint className="h-6 w-6" />
-            </div>
-
-            <div>
-              <p className="text-xs font-bold text-purple-600">
-                Profile & Settings
-              </p>
-
-              <h1 className="mt-1 text-xl font-black text-purple-950 sm:text-2xl">
-                โปรไฟล์และการตั้งค่า
-              </h1>
-
-              <p className="mt-1 text-sm text-slate-500">
-                จัดการข้อมูลผู้รับฝาก รูปสถานที่
-                ข้อมูลบัญชี การแจ้งเตือน และความปลอดภัย
-                ได้จากหน้าเดียว
-              </p>
-            </div>
+      <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+        {/* HEADER */}
+        <section className="mb-6 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+            <UserRound className="h-3.5 w-3.5" />
+            Sitter Profile
           </div>
-          </div>
+
+          <h1 className="mt-3 text-2xl font-black text-[#2E1065]">
+            โปรไฟล์ของฉัน
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            จัดการข้อมูลโปรไฟล์ ข้อมูลการให้บริการ รูปสถานที่ และการตั้งค่าบัญชีผู้รับฝาก
+          </p>
         </section>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-stretch">
-          <div className="min-w-0 w-full lg:h-full">
-        {/* =================================================
-         * AVATAR
-         * =============================================== */}
-
-        <section className="flex flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
-          <SectionTitle
-            icon={
-              <UserRound className="h-5 w-5" />
-            }
-            title="โปรไฟล์ผู้รับฝาก"
-          />
-
-          <div className="mt-5 flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-center">
-            {/* IMAGE */}
-
-            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-purple-50 shadow-md ring-1 ring-purple-100">
-              {avatarUrl ? (
-                <Image
-                  src={
-                    avatarUrl
-                  }
-                  alt={
-                    displayName ||
-                    'รูปโปรไฟล์ผู้รับฝาก'
-                  }
-                  fill
-                  unoptimized
-                  className="object-contain p-1"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <UserRound className="h-10 w-10 text-purple-300" />
+        {/* PROFILE */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* LEFT PROFILE CARD */}
+          <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+            <div className="text-center">
+              <div className="relative mx-auto h-32 w-32">
+                <div className="relative h-32 w-32 overflow-hidden rounded-[28px] border-4 border-purple-50 bg-purple-100 shadow-md">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName || 'Profile'}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-purple-400">
+                      <UserRound className="h-14 w-14" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* INFO */}
-
-            <div className="flex-1 text-center sm:text-left">
-              <p className="text-sm font-black text-purple-950">
-                {displayName ||
-                  'รูปโปรไฟล์'}
-              </p>
-
-              <p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">
-                รูปนี้จะแสดงให้ Owner
-                เห็นในหน้าค้นหาผู้รับฝาก
-                และหน้ารายละเอียดผู้รับฝาก
-              </p>
-
-              {/* HIDDEN INPUT */}
-
-              <input
-                ref={
-                  avatarInputRef
-                }
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={
-                  handleAvatarChange
-                }
-              />
-
-              {/* BUTTON */}
-
-              <button
-                type="button"
-                disabled={
-                  uploadingAvatar
-                }
-                onClick={() =>
-                  avatarInputRef.current?.click()
-                }
-                className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {uploadingAvatar ? (
-                  <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    avatarInputRef.current?.click()
+                  }
+                  disabled={uploadingAvatar}
+                  className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-600 text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700 disabled:opacity-50"
+                  aria-label="เปลี่ยนรูปโปรไฟล์"
+                >
+                  {uploadingAvatar ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-
-                    กำลังอัปโหลด...
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <Camera className="h-4 w-4" />
+                  )}
+                </button>
 
-                    {avatarUrl
-                      ? 'เปลี่ยนรูปโปรไฟล์'
-                      : 'เพิ่มรูปโปรไฟล์'}
-                  </>
-                )}
-              </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </div>
 
-              <p className="mt-2 text-[10px] text-slate-400">
-                รองรับไฟล์รูปภาพ •
-                ขนาดไม่เกิน 5 MB
+              <h2 className="mt-5 text-lg font-black text-purple-950">
+                {displayName || 'ผู้รับฝากสัตว์เลี้ยง'}
+              </h2>
+
+              <p className="mt-1 text-xs font-bold text-purple-500">
+                ผู้รับฝากสัตว์เลี้ยง
+              </p>
+
+              <div className="mt-5 space-y-3 rounded-2xl bg-[#FAF7FE] p-4 text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                    <Mail className="h-4 w-4" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-400">
+                      อีเมล
+                    </div>
+                    <div className="truncate text-xs font-medium text-slate-700">
+                      {email || 'ยังไม่ได้ระบุ'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
+                    <Phone className="h-4 w-4" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-400">
+                      เบอร์โทร
+                    </div>
+                    <div className="truncate text-xs font-medium text-slate-700">
+                      {phone || 'ยังไม่ได้ระบุ'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-400">
+                      พื้นที่ให้บริการ
+                    </div>
+                    <div className="truncate text-xs font-medium text-slate-700">
+                      {locations.find(
+                        (item) =>
+                          item.id === locationId
+                      )?.district || 'ยังไม่ได้ระบุ'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-4 text-[10px] leading-4 text-slate-400">
+                รูปโปรไฟล์จะอัปเดตทันทีหลังเลือกไฟล์
               </p>
             </div>
-          </div>
-        
-          <div className="mt-5 grid gap-4 border-t border-purple-100 pt-5 sm:grid-cols-2">
-            <Field>
-              <Label>
-                <UserRound className="h-4 w-4" />
-                ชื่อที่แสดง
-              </Label>
+          </section>
 
-              <input
-                type="text"
-                value={displayName}
-                onChange={(event) =>
-                  setDisplayName(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-                placeholder="ชื่อที่ต้องการให้ Owner เห็น"
-              />
-            </Field>
+          {/* RIGHT EDIT FORM */}
+          <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm lg:col-span-2">
+            <div className="mb-5">
+              <h2 className="font-black text-purple-950">
+                แก้ไขข้อมูลผู้รับฝาก
+              </h2>
 
-            <Field>
-              <Label>
-                <Phone className="h-4 w-4" />
-                เบอร์โทรศัพท์
-              </Label>
+              <p className="mt-1 text-xs text-slate-400">
+                แก้ไขข้อมูลแล้วกด Enter เพื่อบันทึก
+              </p>
+            </div>
 
-              <input
-                type="tel"
-                value={phone}
-                onChange={(event) =>
-                  setPhone(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-                placeholder="เช่น 08x-xxx-xxxx"
-              />
-            </Field>
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-purple-950">
+                    ชื่อที่แสดง
+                  </label>
 
-            <div className="sm:col-span-2">
-              <Field>
-                <Label>
-                  <Mail className="h-4 w-4" />
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(event) =>
+                      setDisplayName(event.target.value)
+                    }
+                    onKeyDown={handleSaveOnEnter}
+                    placeholder="ชื่อที่ต้องการให้ Owner เห็น"
+                    className="input-style"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-purple-950">
+                    เบอร์โทรศัพท์
+                  </label>
+
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(event) =>
+                      setPhone(event.target.value)
+                    }
+                    onKeyDown={handleSaveOnEnter}
+                    placeholder="08xxxxxxxx"
+                    className="input-style"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-purple-950">
                   อีเมล
-                </Label>
+                </label>
 
                 <input
                   type="email"
@@ -1660,280 +1626,201 @@ export default function SitterProfilePage() {
                   className="input-style cursor-not-allowed bg-slate-50 text-slate-400"
                 />
 
-                <p className="mt-1 text-[10px] text-slate-400">
-                  อีเมลที่ใช้สำหรับเข้าสู่ระบบ
+                <p className="mt-1.5 text-[10px] text-slate-400">
+                  อีเมลใช้สำหรับเข้าสู่ระบบ จึงไม่แก้ไขจากหน้านี้
                 </p>
-              </Field>
+              </div>
+
+              <div className="border-t border-purple-100 pt-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                    <Home className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-black text-purple-950">
+                      ข้อมูลการให้บริการ
+                    </h3>
+                    <p className="mt-0.5 text-[10px] text-slate-400">
+                      ข้อมูลที่ Owner ใช้ประกอบการเลือกผู้รับฝาก
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-purple-950">
+                      พื้นที่ให้บริการ
+                    </label>
+
+                    <select
+                      value={locationId}
+                      onChange={(event) =>
+                        setLocationId(event.target.value)
+                      }
+                      onKeyDown={handleSaveOnEnter}
+                      className="input-style"
+                    >
+                      <option value="">
+                        เลือกอำเภอในจังหวัดสุราษฎร์ธานี
+                      </option>
+
+                      {locations.length > 0 ? (
+                        locations.map(
+                          (
+                            location
+                          ) => (
+                            <option
+                              key={
+                                location.id
+                              }
+                              value={
+                                location.id
+                              }
+                            >
+                              {
+                                location.district
+                              }
+                            </option>
+                          )
+                        )
+                      ) : (
+                        <option
+                          value=""
+                          disabled
+                        >
+                          ไม่พบข้อมูลอำเภอ
+                        </option>
+                      )}
+                    </select>
+
+                    <p className="mt-1.5 text-[10px] text-slate-400">
+                      ให้บริการเฉพาะพื้นที่ในจังหวัดสุราษฎร์ธานี
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-purple-950">
+                      ประเภทสถานที่
+                    </label>
+
+                    <select
+                      value={houseType}
+                      onChange={(event) =>
+                        setHouseType(event.target.value)
+                      }
+                      onKeyDown={handleSaveOnEnter}
+                      className="input-style"
+                    >
+                      <option value="">
+                        เลือกประเภท
+                      </option>
+                      <option value="HOUSE">บ้าน</option>
+                      <option value="TOWNHOUSE">ทาวน์เฮาส์</option>
+                      <option value="CONDO">คอนโด</option>
+                      <option value="APARTMENT">อพาร์ตเมนต์</option>
+                      <option value="OTHER">อื่น ๆ</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-bold text-purple-950">
+                      ความถนัด / ข้อมูลแนะนำตัว
+                    </label>
+
+                    <textarea
+                      rows={5}
+                      value={specialty}
+                      onChange={(event) =>
+                        setSpecialty(event.target.value)
+                      }
+                      onKeyDown={handleSaveOnEnter}
+                      placeholder="เช่น มีประสบการณ์เลี้ยงแมว มีพื้นที่แยกสำหรับสัตว์..."
+                      className="input-style resize-none"
+                    />
+
+                    <p className="mt-1.5 text-[10px] text-slate-400">
+                      Enter เพื่อบันทึก • Shift + Enter เพื่อขึ้นบรรทัดใหม่
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+        </div>
 
-
-          <div className="mt-6 border-t border-purple-100 pt-6">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                <Home className="h-4 w-4" />
+        {/* PLACE IMAGES */}
+        <section className="mt-6 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                <Camera className="h-5 w-5" />
               </div>
 
               <div>
-                <p className="text-xs font-black text-purple-950">
-                  ข้อมูลการให้บริการ
-                </p>
-
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  พื้นที่รับฝาก ประเภทสถานที่ และข้อมูลแนะนำตัว
+                <h2 className="font-black text-purple-950">
+                  รูปสถานที่รับฝาก
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  เพิ่มภาพพื้นที่จริงเพื่อช่วยให้ Owner ตัดสินใจ
                 </p>
               </div>
             </div>
 
-<div className="grid content-start gap-4 sm:grid-cols-2">
-            {/* LOCATION */}
-
-            <Field>
-              <Label>
-                <MapPin className="h-4 w-4" />
-
-                พื้นที่ให้บริการ
-              </Label>
-
-              <select
-                value={
-                  locationId
-                }
-                onChange={(
-                  event
-                ) =>
-                  setLocationId(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-              >
-                <option value="">
-                  เลือกอำเภอ
-                </option>
-
-                {locations.map(
-                  (
-                    location
-                  ) => (
-                    <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
-                    >
-                      {
-                        location.district
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-
-              <p className="mt-1 text-[10px] text-slate-400">
-                จังหวัดสุราษฎร์ธานี
-              </p>
-            </Field>
-
-            {/* HOUSE */}
-
-            <Field>
-              <Label>
-                ประเภทสถานที่
-              </Label>
-
-              <select
-                value={
-                  houseType
-                }
-                onChange={(
-                  event
-                ) =>
-                  setHouseType(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-              >
-                <option value="">
-                  เลือกประเภท
-                </option>
-
-                <option value="HOUSE">
-                  บ้าน
-                </option>
-
-                <option value="TOWNHOUSE">
-                  ทาวน์เฮาส์
-                </option>
-
-                <option value="CONDO">
-                  คอนโด
-                </option>
-
-                <option value="APARTMENT">
-                  อพาร์ตเมนต์
-                </option>
-
-                <option value="OTHER">
-                  อื่น ๆ
-                </option>
-              </select>
-            </Field>
-
-            {/* SPECIALTY */}
-
-            <div className="sm:col-span-2">
-              <Field>
-                <Label>
-                  ความถนัด /
-                  ข้อมูลแนะนำตัว
-                </Label>
-
-                <textarea
-                  rows={
-                    5
-                  }
-                  value={
-                    specialty
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setSpecialty(
-                      event.target.value
-                    )
-                  }
-                  onKeyDown={
-                    handleSaveOnEnter
-                  }
-                  placeholder="เช่น มีประสบการณ์เลี้ยงแมวหลายปี มีพื้นที่แยกสำหรับสัตว์..."
-                  className="input-style resize-none"
-                />
-              </Field>
-            </div>
+            <span className="shrink-0 rounded-full bg-purple-50 px-3 py-1 text-[10px] font-bold text-purple-600">
+              {placeImages.length}/{MAX_SITTER_PLACE_IMAGES} รูป
+            </span>
           </div>
-          </div>
-</section>
-          </div>
-
-          <div className="min-w-0 w-full space-y-5 lg:grid lg:h-full lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-5 lg:space-y-0">
-        {/* =================================================
-         * PLACE IMAGES
-         * =============================================== */}
-
-        <section className="flex flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <SectionTitle
-              icon={
-                <Camera className="h-5 w-5" />
-              }
-              title="รูปสถานที่รับฝาก"
-            />
-
-            <div className="text-xs text-slate-400">
-              {
-                placeImages.length
-              }
-              /
-              {
-                MAX_SITTER_PLACE_IMAGES
-              }{' '}
-              รูป
-            </div>
-          </div>
-
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            แนะนำให้อัปโหลดภาพพื้นที่จริง
-            เช่น ห้องที่สัตว์พัก
-            พื้นที่เล่น หรือบริเวณภายในบ้าน
-            เพื่อช่วยให้ Owner ตัดสินใจ
-          </p>
 
           <input
-            ref={
-              fileInputRef
-            }
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             multiple
             className="hidden"
-            onChange={
-              handleFileChange
-            }
+            onChange={handleFileChange}
           />
 
-          {/* UPLOAD */}
-
-          {placeImages.length <
-            MAX_SITTER_PLACE_IMAGES && (
-            <button
-              type="button"
-              disabled={
-                uploadingImages
-              }
-              onClick={() =>
-                fileInputRef.current?.click()
-              }
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 px-4 py-4 text-xs font-bold text-purple-600 transition hover:border-purple-300 hover:bg-purple-50 disabled:opacity-50"
-            >
-              {uploadingImages ? (
-                <>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
+            {placeImages.length < MAX_SITTER_PLACE_IMAGES && (
+              <button
+                type="button"
+                disabled={uploadingImages}
+                onClick={() =>
+                  fileInputRef.current?.click()
+                }
+                className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-purple-200 bg-[#FAF8FE] px-4 text-xs font-bold text-purple-600 transition hover:border-purple-300 hover:bg-purple-50 disabled:opacity-50"
+              >
+                {uploadingImages ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
-
-                  กำลังอัปโหลด...
-                </>
-              ) : (
-                <>
+                ) : (
                   <ImagePlus className="h-5 w-5" />
+                )}
 
-                  เพิ่มรูปสถานที่
-                </>
-              )}
-            </button>
-          )}
+                {uploadingImages
+                  ? 'กำลังอัปโหลด...'
+                  : 'เพิ่มรูปสถานที่'}
+              </button>
+            )}
 
-          <p className="mt-1.5 text-center text-[10px] text-slate-400">
-            เลือกหลายรูปพร้อมกันได้ •
-            สูงสุด 5 รูป •
-            ไม่เกิน 5 MB ต่อรูป
-          </p>
-
-          {/* GALLERY */}
-
-          {placeImages.length >
-          0 ? (
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {placeImages.map(
-                (
-                  image,
-                  index
-                ) => (
+            {placeImages.length > 0 ? (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                {placeImages.map((image, index) => (
                   <div
-                    key={
-                      image.id
-                    }
-                    className="group relative overflow-hidden rounded-2xl border border-purple-100 bg-[#FAF8FE] shadow-sm"
+                    key={image.id}
+                    className="group relative overflow-hidden rounded-2xl border border-purple-100 bg-[#FAF8FE]"
                   >
-                    <div className="relative aspect-square max-h-28">
+                    <div className="relative aspect-square">
                       <Image
-                        src={
-                          image.imageUrl
-                        }
-                        alt={`สถานที่รับฝาก ${
-                          index +
-                          1
-                        }`}
+                        src={image.imageUrl}
+                        alt={`สถานที่รับฝาก ${index + 1}`}
                         fill
                         unoptimized
-                        className="object-contain p-1"
+                        className="object-cover"
                       />
                     </div>
 
-                    {index ===
-                      0 && (
+                    {index === 0 && (
                       <span className="absolute left-2 top-2 rounded-full bg-purple-600 px-2 py-1 text-[9px] font-bold text-white">
                         รูปหลัก
                       </span>
@@ -1941,147 +1828,129 @@ export default function SitterProfilePage() {
 
                     <button
                       type="button"
-                      disabled={
-                        deletingImageId ===
-                        image.id
-                      }
+                      disabled={deletingImageId === image.id}
                       onClick={() =>
-                        void handleDeleteImage(
-                          image
-                        )
+                        void handleDeleteImage(image)
                       }
-                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-600 shadow transition hover:bg-red-50 disabled:opacity-50"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:opacity-50"
                       title="ลบรูป"
                     >
-                      {deletingImageId ===
-                      image.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      {deletingImageId === image.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       )}
                     </button>
                   </div>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="mt-4 flex min-h-[120px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center">
-              <Upload className="h-7 w-7 text-slate-300" />
-
-              <p className="mt-2 text-xs text-slate-400">
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[120px] items-center justify-center rounded-2xl bg-slate-50 text-xs text-slate-400">
                 ยังไม่มีรูปสถานที่
-              </p>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+
+          <p className="mt-3 text-[10px] text-slate-400">
+            เลือกหลายรูปพร้อมกันได้ • สูงสุด 5 รูป • ไม่เกิน 5 MB ต่อรูป
+          </p>
         </section>
 
-        {/* =================================================
-         * ACCOUNT SETTINGS
-         * =============================================== */}
+        {/* ACCOUNT SETTINGS */}
+        <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-2">
+          {/* Notification */}
+          <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                <Bell className="h-5 w-5" />
+              </div>
 
-        <section className="flex min-h-0 w-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
-          <SectionTitle
-            icon={
-              <Settings className="h-5 w-5" />
-            }
-            title="การตั้งค่าบัญชี"
-          />
+              <div>
+                <h2 className="font-black text-purple-950">
+                  การแจ้งเตือน
+                </h2>
 
-          <div className="mt-5 flex flex-col gap-5">
-            {/* NOTIFICATION */}
-            <div className="flex min-h-[104px] items-center justify-between gap-4 rounded-2xl border border-purple-100 bg-[#FCFAFF] p-4">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-                  <Bell className="h-4 w-4" />
+                <p className="mt-1 text-xs text-slate-400">
+                  ตั้งค่าการรับการแจ้งเตือนของบัญชีผู้รับฝาก
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-1 items-center justify-between gap-4 rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-4">
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-800">
+                  รับการแจ้งเตือนผ่านอีเมล
                 </div>
 
-                <div className="min-w-0">
-                  <p className="text-xs font-black text-purple-950">
-                    การแจ้งเตือนผ่านอีเมล
-                  </p>
-
-                  <p className="mt-1 text-[10px] leading-4 text-slate-400">
-                    รับข้อมูลคำขอจองและการเปลี่ยนแปลงสำคัญของบัญชี
-                  </p>
-                </div>
+                <p className="mt-1 text-[10px] leading-4 text-slate-400">
+                  แจ้งคำขอจองและการเปลี่ยนแปลงสำคัญของบัญชี
+                </p>
               </div>
 
               <button
                 type="button"
                 role="switch"
                 aria-checked={emailNotifications}
-                disabled={
-                  savingNotification
-                }
+                disabled={savingNotification}
                 onClick={() =>
                   void handleEmailNotificationChange(
                     !emailNotifications
                   )
                 }
-                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-60 ${
                   emailNotifications
                     ? 'bg-purple-600'
-                    : 'bg-slate-300'
+                    : 'bg-slate-200'
                 }`}
               >
                 <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition ${
                     emailNotifications
-                      ? 'left-6'
-                      : 'left-1'
+                      ? 'left-[22px]'
+                      : 'left-0.5'
                   }`}
                 />
               </button>
             </div>
+          </section>
 
-            {/* PASSWORD */}
-            <div className="flex flex-col rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
-                  <KeyRound className="h-4 w-4" />
-                </div>
-
-                <div>
-                  <p className="text-xs font-black text-purple-950">
-                    เปลี่ยนรหัสผ่าน
-                  </p>
-
-                  <p className="mt-1 text-[10px] leading-4 text-slate-400">
-                    รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร
-                  </p>
-                </div>
+          {/* Password */}
+          <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-100 text-pink-600">
+                <KeyRound className="h-5 w-5" />
               </div>
 
-              <form
-                onSubmit={
-                  handleChangePassword
-                }
-                className="mt-4 space-y-4"
-              >
+              <div>
+                <h2 className="font-black text-purple-950">
+                  เปลี่ยนรหัสผ่าน
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleChangePassword}
+              className="mt-5 flex flex-1 flex-col"
+            >
+              <div className="space-y-4">
                 <PasswordField
                   label="รหัสผ่านใหม่"
-                  value={
-                    passwordForm.newPassword
-                  }
-                  showPassword={
-                    showNewPassword
-                  }
+                  value={passwordForm.newPassword}
+                  showPassword={showNewPassword}
                   onToggleShow={() =>
                     setShowNewPassword(
-                      (current) =>
-                        !current
+                      (current) => !current
                     )
                   }
-                  onChange={(
-                    value
-                  ) =>
+                  onChange={(value) =>
                     setPasswordForm(
-                      (
-                        current
-                      ) => ({
+                      (current) => ({
                         ...current,
-                        newPassword:
-                          value,
+                        newPassword: value,
                       })
                     )
                   }
@@ -2090,60 +1959,46 @@ export default function SitterProfilePage() {
 
                 <PasswordField
                   label="ยืนยันรหัสผ่านใหม่"
-                  value={
-                    passwordForm.confirmPassword
-                  }
-                  showPassword={
-                    showConfirmPassword
-                  }
+                  value={passwordForm.confirmPassword}
+                  showPassword={showConfirmPassword}
                   onToggleShow={() =>
                     setShowConfirmPassword(
-                      (current) =>
-                        !current
+                      (current) => !current
                     )
                   }
-                  onChange={(
-                    value
-                  ) =>
+                  onChange={(value) =>
                     setPasswordForm(
-                      (
-                        current
-                      ) => ({
+                      (current) => ({
                         ...current,
-                        confirmPassword:
-                          value,
+                        confirmPassword: value,
                       })
                     )
                   }
                   placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
                 />
+              </div>
 
-                <div className="flex justify-end border-t border-purple-100 pt-4">
-                  <button
-                    type="submit"
-                    disabled={
-                      changingPassword
-                    }
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {changingPassword ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        กำลังเปลี่ยนรหัสผ่าน...
-                      </>
-                    ) : (
-                      <>
-                        <KeyRound className="h-4 w-4" />
-                        เปลี่ยนรหัสผ่าน
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </section>
-          </div>
+              <div className="mt-auto flex justify-end border-t border-purple-100 pt-5">
+                <button
+                  type="submit"
+                  disabled={changingPassword}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {changingPassword ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      กำลังเปลี่ยนรหัสผ่าน...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="h-4 w-4" />
+                      เปลี่ยนรหัสผ่าน
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       </div>
 

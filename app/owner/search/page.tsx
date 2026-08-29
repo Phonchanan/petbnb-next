@@ -32,6 +32,7 @@ export default function OwnerSearchPage() {
 
   const [keyword, setKeyword] = useState('');
   const [province, setProvince] = useState('');
+  const [district, setDistrict] = useState('');
   const [category, setCategory] = useState('');
 
   /* =======================================================
@@ -95,6 +96,37 @@ export default function OwnerSearchPage() {
   }, [sitters]);
 
   /* =======================================================
+   * DISTRICTS
+   * ===================================================== */
+
+  const districts = useMemo(() => {
+    return Array.from(
+      new Set(
+        sitters
+          .filter(
+            (sitter) =>
+              !province ||
+              sitter.province === province
+          )
+          .map((sitter) => sitter.district)
+          .filter(
+            (value): value is string =>
+              Boolean(value)
+          )
+      )
+    ).sort();
+  }, [sitters, province]);
+
+  useEffect(() => {
+    if (
+      district &&
+      !districts.includes(district)
+    ) {
+      setDistrict('');
+    }
+  }, [district, districts]);
+
+  /* =======================================================
    * FILTER
    * ===================================================== */
 
@@ -113,16 +145,26 @@ export default function OwnerSearchPage() {
       const matchesProvince =
         !province || sitter.province === province;
 
+      const matchesDistrict =
+        !district || sitter.district === district;
+
       const matchesCategory =
         !category || sitter.categories.includes(category);
 
       return (
         matchesKeyword &&
         matchesProvince &&
+        matchesDistrict &&
         matchesCategory
       );
     });
-  }, [sitters, keyword, province, category]);
+  }, [
+    sitters,
+    keyword,
+    province,
+    district,
+    category,
+  ]);
 
   /* =======================================================
    * TOP 3 RECOMMENDATION
@@ -173,12 +215,14 @@ export default function OwnerSearchPage() {
   const clearFilters = () => {
     setKeyword('');
     setProvince('');
+    setDistrict('');
     setCategory('');
   };
 
   const hasFilter =
     keyword.trim() !== '' ||
     province !== '' ||
+    district !== '' ||
     category !== '';
 
   /* =======================================================
@@ -217,7 +261,7 @@ export default function OwnerSearchPage() {
           จากพื้นที่ ประเภทสัตว์ และความเชี่ยวชาญ
         </p>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -232,13 +276,38 @@ export default function OwnerSearchPage() {
 
           <select
             value={province}
-            onChange={(event) => setProvince(event.target.value)}
+            onChange={(event) => {
+              setProvince(event.target.value);
+              setDistrict('');
+            }}
             className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
           >
             <option value="">ทุกจังหวัด</option>
 
             {provinces.map((item) => (
               <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={district}
+            onChange={(event) =>
+              setDistrict(event.target.value)
+            }
+            disabled={districts.length === 0}
+            className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            <option value="">
+              ทุกอำเภอ
+            </option>
+
+            {districts.map((item) => (
+              <option
+                key={item}
+                value={item}
+              >
                 {item}
               </option>
             ))}
@@ -341,7 +410,7 @@ export default function OwnerSearchPage() {
             </h3>
 
             <p className="mt-1 text-xs text-slate-400">
-              ลองเปลี่ยนคำค้นหา จังหวัด หรือประเภทสัตว์
+              ลองเปลี่ยนคำค้นหา จังหวัด อำเภอ หรือประเภทสัตว์
             </p>
 
             {hasFilter && (
