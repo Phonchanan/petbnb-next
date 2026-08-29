@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   LogOut,
   PawPrint,
-  Settings,
   UserRound,
 } from 'lucide-react';
 
@@ -49,11 +48,7 @@ const menuItems = [
     href: '/sitter/profile',
     icon: UserRound,
   },
-  {
-    label: 'ตั้งค่าการรับฝาก',
-    href: '/sitter/settings',
-    icon: Settings,
-  },
+
 ];
 
 export default function SitterNav() {

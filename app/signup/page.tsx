@@ -931,14 +931,14 @@ export default function SignUpPage() {
           </form>
 
           {/* =================================
-           * SIGN IN
+           * LOGIN
            * =============================== */}
 
           <div className="mt-6 text-center text-xs text-slate-500">
             มีบัญชีอยู่แล้ว?{' '}
 
             <Link
-              href="/signin"
+              href="/login"
               className="font-bold text-purple-700 hover:underline"
             >
               เข้าสู่ระบบ

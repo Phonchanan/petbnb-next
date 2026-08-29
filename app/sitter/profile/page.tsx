@@ -4,6 +4,7 @@
 
 import {
   ChangeEvent,
+  FormEvent,
   useCallback,
   useEffect,
   useRef,
@@ -15,15 +16,20 @@ import { useRouter } from 'next/navigation';
 
 import {
   AlertCircle,
+  Bell,
   Camera,
   CheckCircle2,
+  Eye,
+  EyeOff,
   Home,
   ImagePlus,
+  KeyRound,
   Loader2,
+  Mail,
   MapPin,
   PawPrint,
-  Save,
-  ShieldCheck,
+  Phone,
+  Settings,
   Trash2,
   Upload,
   UserRound,
@@ -95,13 +101,6 @@ interface SitterProfileRow {
     | string
     | null;
 
-  experience_years:
-    number;
-
-  starting_price:
-    | number
-    | string;
-
   is_verified:
     boolean;
 
@@ -146,7 +145,21 @@ interface UserProfileRow {
   last_name:
     | string
     | null;
+
+  phone:
+    | string
+    | null;
 }
+
+interface PasswordFormState {
+  newPassword: string;
+  confirmPassword: string;
+}
+
+const initialPasswordForm: PasswordFormState = {
+  newPassword: '',
+  confirmPassword: '',
+};
 
 /* =========================================================
  * PAGE
@@ -193,6 +206,50 @@ export default function SitterProfilePage() {
     setDisplayName,
   ] =
     useState('');
+
+  const [
+    email,
+    setEmail,
+  ] =
+    useState('');
+
+  const [
+    phone,
+    setPhone,
+  ] =
+    useState('');
+
+  const [
+    emailNotifications,
+    setEmailNotifications,
+  ] =
+    useState(true);
+
+  const [
+    passwordForm,
+    setPasswordForm,
+  ] =
+    useState<PasswordFormState>(
+      initialPasswordForm
+    );
+
+  const [
+    changingPassword,
+    setChangingPassword,
+  ] =
+    useState(false);
+
+  const [
+    showNewPassword,
+    setShowNewPassword,
+  ] =
+    useState(false);
+
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] =
+    useState(false);
 
   /* =======================================================
    * AVATAR
@@ -258,24 +315,6 @@ export default function SitterProfilePage() {
   ] =
     useState('');
 
-  const [
-    experienceYears,
-    setExperienceYears,
-  ] =
-    useState('0');
-
-  const [
-    startingPrice,
-    setStartingPrice,
-  ] =
-    useState('0');
-
-  const [
-    isAvailable,
-    setIsAvailable,
-  ] =
-    useState(false);
-
   /* =======================================================
    * LOADING STATES
    * ===================================================== */
@@ -287,8 +326,8 @@ export default function SitterProfilePage() {
     useState(true);
 
   const [
-    saving,
-    setSaving,
+    savingNotification,
+    setSavingNotification,
   ] =
     useState(false);
 
@@ -367,6 +406,22 @@ export default function SitterProfilePage() {
             current.id
           );
 
+          setEmail(
+            current.email || ''
+          );
+
+          const {
+            data: {
+              user: authUser,
+            },
+          } =
+            await supabase.auth.getUser();
+
+          setEmailNotifications(
+            authUser?.user_metadata
+              ?.email_notifications !== false
+          );
+
           /* ===============================================
            * USER PROFILE
            *
@@ -389,7 +444,8 @@ export default function SitterProfilePage() {
                 avatar_url,
                 display_name,
                 first_name,
-                last_name
+                last_name,
+                phone
               `)
               .eq(
                 'id',
@@ -413,6 +469,10 @@ export default function SitterProfilePage() {
             setAvatarUrl(
               userProfile.avatar_url ??
                 null
+            );
+
+            setPhone(
+              userProfile.phone ?? ''
             );
 
             const name =
@@ -453,8 +513,6 @@ export default function SitterProfilePage() {
                 location_id,
                 house_type,
                 specialty,
-                experience_years,
-                starting_price,
                 is_verified,
                 is_available,
                 verification_status,
@@ -505,24 +563,6 @@ export default function SitterProfilePage() {
           setSpecialty(
             sitter.specialty ??
               ''
-          );
-
-          setExperienceYears(
-            String(
-              sitter.experience_years ??
-                0
-            )
-          );
-
-          setStartingPrice(
-            String(
-              sitter.starting_price ??
-                0
-            )
-          );
-
-          setIsAvailable(
-            sitter.is_available
           );
 
           /* ===============================================
@@ -865,188 +905,307 @@ export default function SitterProfilePage() {
    * SAVE PROFILE
    * ===================================================== */
 
-  const handleSave =
-    async () => {
-      if (!profile) {
+  const saveProfile =
+    useCallback(
+      async () => {
+        if (
+          !profile ||
+          !userId
+        ) {
+          return;
+        }
+
+        try {
+          setError('');
+
+          const now =
+            new Date().toISOString();
+
+          const {
+            error:
+              accountUpdateError,
+          } =
+            await supabase
+              .from('profiles')
+              .update({
+                display_name:
+                  displayName.trim() ||
+                  'ผู้รับฝากสัตว์เลี้ยง',
+
+                phone:
+                  phone.trim() ||
+                  null,
+
+                updated_at:
+                  now,
+              })
+              .eq(
+                'id',
+                userId
+              );
+
+          if (
+            accountUpdateError
+          ) {
+            throw new Error(
+              accountUpdateError.message
+            );
+          }
+
+          const {
+            error:
+              sitterUpdateError,
+          } =
+            await supabase
+              .from(
+                'sitter_profiles'
+              )
+              .update({
+                location_id:
+                  locationId ||
+                  null,
+
+                house_type:
+                  houseType.trim() ||
+                  null,
+
+                specialty:
+                  specialty.trim() ||
+                  null,
+
+                updated_at:
+                  now,
+              })
+              .eq(
+                'id',
+                profile.id
+              );
+
+          if (
+            sitterUpdateError
+          ) {
+            throw new Error(
+              sitterUpdateError.message
+            );
+          }
+
+          setProfile(
+            (
+              current
+            ) =>
+              current
+                ? {
+                    ...current,
+
+                    location_id:
+                      locationId ||
+                      null,
+
+                    house_type:
+                      houseType,
+
+                    specialty,
+                  }
+                : current
+          );
+        } catch (err) {
+          console.error(
+            'SAVE SITTER PROFILE ERROR:',
+            err
+          );
+
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'ไม่สามารถบันทึกข้อมูลได้'
+          );
+        }
+      },
+      [
+        profile,
+        userId,
+        displayName,
+        phone,
+        locationId,
+        houseType,
+        specialty,
+      ]
+    );
+
+  const handleSaveOnEnter = (
+    event:
+      React.KeyboardEvent<
+        HTMLInputElement |
+        HTMLSelectElement |
+        HTMLTextAreaElement
+      >
+  ) => {
+    if (
+      event.key !==
+      'Enter'
+    ) {
+      return;
+    }
+
+    /*
+     * textarea:
+     * Enter = บันทึก
+     * Shift + Enter = ขึ้นบรรทัดใหม่
+     */
+    if (
+      event.currentTarget
+        .tagName ===
+        'TEXTAREA' &&
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    void saveProfile();
+  };
+
+  const handleEmailNotificationChange =
+    async (
+      nextValue: boolean
+    ) => {
+      if (
+        savingNotification
+      ) {
         return;
       }
 
-      const experience =
-        Number(
-          experienceYears
+      const previousValue =
+        emailNotifications;
+
+      setEmailNotifications(
+        nextValue
+      );
+
+      try {
+        setSavingNotification(true);
+        setError('');
+
+        const {
+          error:
+            notificationError,
+        } =
+          await supabase.auth.updateUser({
+            data: {
+              email_notifications:
+                nextValue,
+            },
+          });
+
+        if (
+          notificationError
+        ) {
+          throw notificationError;
+        }
+      } catch (err) {
+        console.error(
+          'AUTO SAVE EMAIL NOTIFICATION ERROR:',
+          err
         );
 
-      const price =
-        Number(
-          startingPrice
+        setEmailNotifications(
+          previousValue
         );
 
-      /* ===============================================
-       * EXPERIENCE VALIDATION
-       * ============================================= */
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถอัปเดตการแจ้งเตือนได้'
+        );
+      } finally {
+        setSavingNotification(false);
+      }
+    };
+
+  /* =======================================================
+   * CHANGE PASSWORD
+   * เหมือนหน้า Owner
+   * ===================================================== */
+
+  const handleChangePassword =
+    async (
+      event:
+        FormEvent<HTMLFormElement>
+    ) => {
+      event.preventDefault();
+
+      const newPassword =
+        passwordForm.newPassword.trim();
+
+      const confirmPassword =
+        passwordForm.confirmPassword.trim();
 
       if (
-        Number.isNaN(
-          experience
-        ) ||
-        experience <
-          0
+        newPassword.length <
+        8
       ) {
         setError(
-          'จำนวนปีประสบการณ์ไม่ถูกต้อง'
+          'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร'
         );
-
+        setMessage('');
         return;
       }
 
-      /* ===============================================
-       * PRICE VALIDATION
-       * ============================================= */
-
       if (
-        Number.isNaN(
-          price
-        ) ||
-        price <
-          0
+        newPassword !==
+        confirmPassword
       ) {
         setError(
-          'ราคาเริ่มต้นไม่ถูกต้อง'
+          'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน'
         );
-
-        return;
-      }
-
-      /* ===============================================
-       * AVAILABILITY VALIDATION
-       * ============================================= */
-
-      if (
-        isAvailable &&
-        !profile.is_verified
-      ) {
-        setError(
-          'บัญชียังไม่ได้รับการอนุมัติจาก Admin จึงไม่สามารถเปิดรับงานได้'
-        );
-
-        setIsAvailable(
-          false
-        );
-
+        setMessage('');
         return;
       }
 
       try {
-        setSaving(
-          true
-        );
-
+        setChangingPassword(true);
         setError('');
-
         setMessage('');
-
-        /* =============================================
-         * UPDATE SITTER PROFILE
-         * =========================================== */
 
         const {
           error:
             updateError,
         } =
-          await supabase
-            .from(
-              'sitter_profiles'
-            )
-            .update({
-              location_id:
-                locationId ||
-                null,
-
-              house_type:
-                houseType.trim() ||
-                null,
-
-              specialty:
-                specialty.trim() ||
-                null,
-
-              experience_years:
-                experience,
-
-              starting_price:
-                price,
-
-              is_available:
-                profile.is_verified
-                  ? isAvailable
-                  : false,
-
-              updated_at:
-                new Date()
-                  .toISOString(),
-            })
-            .eq(
-              'id',
-              profile.id
-            );
+          await supabase.auth.updateUser({
+            password:
+              newPassword,
+          });
 
         if (
           updateError
         ) {
-          throw new Error(
-            updateError.message
-          );
+          throw updateError;
         }
 
-        setMessage(
-          'บันทึกข้อมูลโปรไฟล์เรียบร้อยแล้ว'
+        setPasswordForm(
+          initialPasswordForm
         );
 
-        setProfile(
-          (
-            current
-          ) =>
-            current
-              ? {
-                  ...current,
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
 
-                  location_id:
-                    locationId ||
-                    null,
-
-                  house_type:
-                    houseType,
-
-                  specialty,
-
-                  experience_years:
-                    experience,
-
-                  starting_price:
-                    price,
-
-                  is_available:
-                    current.is_verified
-                      ? isAvailable
-                      : false,
-                }
-              : current
+        setMessage(
+          'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว'
         );
       } catch (err) {
         console.error(
-          'SAVE SITTER PROFILE ERROR:',
+          'CHANGE PASSWORD ERROR:',
           err
         );
 
         setError(
           err instanceof Error
             ? err.message
-            : 'ไม่สามารถบันทึกข้อมูลได้'
+            : 'ไม่สามารถเปลี่ยนรหัสผ่านได้'
         );
       } finally {
-        setSaving(
-          false
-        );
+        setChangingPassword(false);
       }
     };
 
@@ -1259,12 +1418,69 @@ export default function SitterProfilePage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8FE]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {(message || error) && (
+        <div className="fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm sm:right-6 sm:top-6">
+          <div
+            className={`flex items-start gap-3 rounded-2xl border bg-white px-4 py-3 shadow-xl shadow-slate-200/50 ${
+              error
+                ? 'border-rose-200'
+                : 'border-emerald-200'
+            }`}
+          >
+            <div
+              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
+                error
+                  ? 'bg-rose-50 text-rose-600'
+                  : 'bg-emerald-50 text-emerald-600'
+              }`}
+            >
+              {error ? (
+                <AlertCircle className="h-4 w-4" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p
+                className={`text-xs font-black ${
+                  error
+                    ? 'text-rose-700'
+                    : 'text-emerald-700'
+                }`}
+              >
+                {error
+                  ? 'ไม่สามารถดำเนินการได้'
+                  : 'สำเร็จ'}
+              </p>
+
+              <p className="mt-0.5 text-xs leading-5 text-slate-600">
+                {error || message}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setMessage('');
+              }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+              aria-label="ปิดการแจ้งเตือน"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
         {/* =================================================
          * HEADER
          * =============================================== */}
 
-        <section className="rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-purple-100/70 blur-3xl" />
+          <div className="relative">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
               <PawPrint className="h-6 w-6" />
@@ -1272,39 +1488,41 @@ export default function SitterProfilePage() {
 
             <div>
               <p className="text-xs font-bold text-purple-600">
-                Sitter Profile
+                Profile & Settings
               </p>
 
               <h1 className="mt-1 text-xl font-black text-purple-950 sm:text-2xl">
-                โปรไฟล์ผู้รับฝาก
+                โปรไฟล์และการตั้งค่า
               </h1>
 
               <p className="mt-1 text-sm text-slate-500">
-                เพิ่มข้อมูล รูปโปรไฟล์
-                และรูปสถานที่
-                เพื่อช่วยให้ Owner
-                ตัดสินใจเลือกบริการได้ง่ายขึ้น
+                จัดการข้อมูลผู้รับฝาก รูปสถานที่
+                ข้อมูลบัญชี การแจ้งเตือน และความปลอดภัย
+                ได้จากหน้าเดียว
               </p>
             </div>
           </div>
+          </div>
         </section>
 
+        <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-stretch">
+          <div className="min-w-0 w-full lg:h-full">
         {/* =================================================
          * AVATAR
          * =============================================== */}
 
-        <section className="mt-5 rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <section className="flex flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
           <SectionTitle
             icon={
               <UserRound className="h-5 w-5" />
             }
-            title="รูปโปรไฟล์ผู้รับฝาก"
+            title="โปรไฟล์ผู้รับฝาก"
           />
 
-          <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+          <div className="mt-5 flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-center">
             {/* IMAGE */}
 
-            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[28px] border border-purple-100 bg-purple-50">
+            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-purple-50 shadow-md ring-1 ring-purple-100">
               {avatarUrl ? (
                 <Image
                   src={
@@ -1316,7 +1534,7 @@ export default function SitterProfilePage() {
                   }
                   fill
                   unoptimized
-                  className="object-cover"
+                  className="object-contain p-1"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
@@ -1363,7 +1581,7 @@ export default function SitterProfilePage() {
                 onClick={() =>
                   avatarInputRef.current?.click()
                 }
-                className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {uploadingAvatar ? (
                   <>
@@ -1388,81 +1606,86 @@ export default function SitterProfilePage() {
               </p>
             </div>
           </div>
-        </section>
+        
+          <div className="mt-5 grid gap-4 border-t border-purple-100 pt-5 sm:grid-cols-2">
+            <Field>
+              <Label>
+                <UserRound className="h-4 w-4" />
+                ชื่อที่แสดง
+              </Label>
 
-        {/* =================================================
-         * STATUS
-         * =============================================== */}
+              <input
+                type="text"
+                value={displayName}
+                onChange={(event) =>
+                  setDisplayName(
+                    event.target.value
+                  )
+                }
+                className="input-style"
+                placeholder="ชื่อที่ต้องการให้ Owner เห็น"
+              />
+            </Field>
 
-        <section className="mt-5">
-          {profile.is_verified ? (
-            <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+            <Field>
+              <Label>
+                <Phone className="h-4 w-4" />
+                เบอร์โทรศัพท์
+              </Label>
+
+              <input
+                type="tel"
+                value={phone}
+                onChange={(event) =>
+                  setPhone(
+                    event.target.value
+                  )
+                }
+                className="input-style"
+                placeholder="เช่น 08x-xxx-xxxx"
+              />
+            </Field>
+
+            <div className="sm:col-span-2">
+              <Field>
+                <Label>
+                  <Mail className="h-4 w-4" />
+                  อีเมล
+                </Label>
+
+                <input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="input-style cursor-not-allowed bg-slate-50 text-slate-400"
+                />
+
+                <p className="mt-1 text-[10px] text-slate-400">
+                  อีเมลที่ใช้สำหรับเข้าสู่ระบบ
+                </p>
+              </Field>
+            </div>
+          </div>
+
+
+          <div className="mt-6 border-t border-purple-100 pt-6">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                <Home className="h-4 w-4" />
+              </div>
 
               <div>
-                <p className="text-sm font-bold text-emerald-800">
-                  บัญชีได้รับการอนุมัติแล้ว
+                <p className="text-xs font-black text-purple-950">
+                  ข้อมูลการให้บริการ
                 </p>
 
-                <p className="mt-1 text-xs text-emerald-700">
-                  สามารถเปิดสถานะพร้อมรับงานได้
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                  พื้นที่รับฝาก ประเภทสถานที่ และข้อมูลแนะนำตัว
                 </p>
               </div>
             </div>
-          ) : (
-            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <ShieldCheck className="mt-0.5 h-5 w-5 text-amber-600" />
 
-              <div>
-                <p className="text-sm font-bold text-amber-800">
-                  สถานะ:{' '}
-                  {
-                    profile.verification_status
-                  }
-                </p>
-
-                <p className="mt-1 text-xs text-amber-700">
-                  ต้องได้รับการอนุมัติจาก Admin
-                  ก่อนเปิดรับงาน
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* =================================================
-         * MESSAGE
-         * =============================================== */}
-
-        {message && (
-          <div className="mt-4 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
-            <CheckCircle2 className="h-5 w-5" />
-
-            {message}
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-
-            {error}
-          </div>
-        )}
-
-        {/* =================================================
-         * PROFILE FORM
-         * =============================================== */}
-
-        <section className="mt-5 rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <SectionTitle
-            icon={
-              <Home className="h-5 w-5" />
-            }
-            title="ข้อมูลการให้บริการ"
-          />
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+<div className="grid content-start gap-4 sm:grid-cols-2">
             {/* LOCATION */}
 
             <Field>
@@ -1560,65 +1783,9 @@ export default function SitterProfilePage() {
               </select>
             </Field>
 
-            {/* EXPERIENCE */}
-
-            <Field>
-              <Label>
-                ประสบการณ์ดูแลสัตว์
-              </Label>
-
-              <input
-                type="number"
-                min="0"
-                value={
-                  experienceYears
-                }
-                onChange={(
-                  event
-                ) =>
-                  setExperienceYears(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-              />
-
-              <p className="mt-1 text-[10px] text-slate-400">
-                หน่วย: ปี
-              </p>
-            </Field>
-
-            {/* PRICE */}
-
-            <Field>
-              <Label>
-                ราคาเริ่มต้น
-              </Label>
-
-              <input
-                type="number"
-                min="0"
-                value={
-                  startingPrice
-                }
-                onChange={(
-                  event
-                ) =>
-                  setStartingPrice(
-                    event.target.value
-                  )
-                }
-                className="input-style"
-              />
-
-              <p className="mt-1 text-[10px] text-slate-400">
-                บาท
-              </p>
-            </Field>
-
             {/* SPECIALTY */}
 
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <Field>
                 <Label>
                   ความถนัด /
@@ -1639,19 +1806,25 @@ export default function SitterProfilePage() {
                       event.target.value
                     )
                   }
+                  onKeyDown={
+                    handleSaveOnEnter
+                  }
                   placeholder="เช่น มีประสบการณ์เลี้ยงแมวหลายปี มีพื้นที่แยกสำหรับสัตว์..."
                   className="input-style resize-none"
                 />
               </Field>
             </div>
           </div>
-        </section>
+          </div>
+</section>
+          </div>
 
+          <div className="min-w-0 w-full space-y-5 lg:grid lg:h-full lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-5 lg:space-y-0">
         {/* =================================================
          * PLACE IMAGES
          * =============================================== */}
 
-        <section className="mt-5 rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <section className="flex flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <SectionTitle
               icon={
@@ -1672,7 +1845,7 @@ export default function SitterProfilePage() {
             </div>
           </div>
 
-          <p className="mt-3 text-xs leading-5 text-slate-500">
+          <p className="mt-2 text-xs leading-5 text-slate-500">
             แนะนำให้อัปโหลดภาพพื้นที่จริง
             เช่น ห้องที่สัตว์พัก
             พื้นที่เล่น หรือบริเวณภายในบ้าน
@@ -1704,7 +1877,7 @@ export default function SitterProfilePage() {
               onClick={() =>
                 fileInputRef.current?.click()
               }
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/40 px-4 py-6 text-sm font-bold text-purple-600 transition hover:border-purple-400 hover:bg-purple-50 disabled:opacity-50"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 px-4 py-4 text-xs font-bold text-purple-600 transition hover:border-purple-300 hover:bg-purple-50 disabled:opacity-50"
             >
               {uploadingImages ? (
                 <>
@@ -1722,7 +1895,7 @@ export default function SitterProfilePage() {
             </button>
           )}
 
-          <p className="mt-2 text-center text-[10px] text-slate-400">
+          <p className="mt-1.5 text-center text-[10px] text-slate-400">
             เลือกหลายรูปพร้อมกันได้ •
             สูงสุด 5 รูป •
             ไม่เกิน 5 MB ต่อรูป
@@ -1732,7 +1905,7 @@ export default function SitterProfilePage() {
 
           {placeImages.length >
           0 ? (
-            <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {placeImages.map(
                 (
                   image,
@@ -1742,9 +1915,9 @@ export default function SitterProfilePage() {
                     key={
                       image.id
                     }
-                    className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-100"
+                    className="group relative overflow-hidden rounded-2xl border border-purple-100 bg-[#FAF8FE] shadow-sm"
                   >
-                    <div className="relative aspect-square">
+                    <div className="relative aspect-square max-h-28">
                       <Image
                         src={
                           image.imageUrl
@@ -1755,7 +1928,7 @@ export default function SitterProfilePage() {
                         }`}
                         fill
                         unoptimized
-                        className="object-cover"
+                        className="object-contain p-1"
                       />
                     </div>
 
@@ -1792,7 +1965,7 @@ export default function SitterProfilePage() {
               )}
             </div>
           ) : (
-            <div className="mt-5 flex min-h-37.5 flex-col items-center justify-center rounded-2xl bg-slate-50 text-center">
+            <div className="mt-4 flex min-h-[120px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center">
               <Upload className="h-7 w-7 text-slate-300" />
 
               <p className="mt-2 text-xs text-slate-400">
@@ -1803,79 +1976,174 @@ export default function SitterProfilePage() {
         </section>
 
         {/* =================================================
-         * AVAILABILITY
+         * ACCOUNT SETTINGS
          * =============================================== */}
 
-        <section className="mt-5 rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-black text-purple-950">
-                พร้อมรับงาน
-              </p>
+        <section className="flex min-h-0 w-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:h-full">
+          <SectionTitle
+            icon={
+              <Settings className="h-5 w-5" />
+            }
+            title="การตั้งค่าบัญชี"
+          />
 
-              <p className="mt-1 text-xs text-slate-500">
-                เมื่อเปิดใช้งาน
-                Owner จะสามารถค้นหาโปรไฟล์ของคุณได้
-              </p>
+          <div className="mt-5 flex flex-col gap-5">
+            {/* NOTIFICATION */}
+            <div className="flex min-h-[104px] items-center justify-between gap-4 rounded-2xl border border-purple-100 bg-[#FCFAFF] p-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                  <Bell className="h-4 w-4" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-purple-950">
+                    การแจ้งเตือนผ่านอีเมล
+                  </p>
+
+                  <p className="mt-1 text-[10px] leading-4 text-slate-400">
+                    รับข้อมูลคำขอจองและการเปลี่ยนแปลงสำคัญของบัญชี
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={emailNotifications}
+                disabled={
+                  savingNotification
+                }
+                onClick={() =>
+                  void handleEmailNotificationChange(
+                    !emailNotifications
+                  )
+                }
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  emailNotifications
+                    ? 'bg-purple-600'
+                    : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+                    emailNotifications
+                      ? 'left-6'
+                      : 'left-1'
+                  }`}
+                />
+              </button>
             </div>
 
-            <button
-              type="button"
-              disabled={
-                !profile.is_verified
-              }
-              onClick={() =>
-                setIsAvailable(
-                  (
-                    current
+            {/* PASSWORD */}
+            <div className="flex flex-col rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-purple-950">
+                    เปลี่ยนรหัสผ่าน
+                  </p>
+
+                  <p className="mt-1 text-[10px] leading-4 text-slate-400">
+                    รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={
+                  handleChangePassword
+                }
+                className="mt-4 space-y-4"
+              >
+                <PasswordField
+                  label="รหัสผ่านใหม่"
+                  value={
+                    passwordForm.newPassword
+                  }
+                  showPassword={
+                    showNewPassword
+                  }
+                  onToggleShow={() =>
+                    setShowNewPassword(
+                      (current) =>
+                        !current
+                    )
+                  }
+                  onChange={(
+                    value
                   ) =>
-                    !current
-                )
-              }
-              className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-                isAvailable
-                  ? 'bg-emerald-500'
-                  : 'bg-slate-300'
-              } ${
-                !profile.is_verified
-                  ? 'cursor-not-allowed opacity-50'
-                  : ''
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
-                  isAvailable
-                    ? 'left-6'
-                    : 'left-1'
-                }`}
-              />
-            </button>
+                    setPasswordForm(
+                      (
+                        current
+                      ) => ({
+                        ...current,
+                        newPassword:
+                          value,
+                      })
+                    )
+                  }
+                  placeholder="กรอกรหัสผ่านใหม่"
+                />
+
+                <PasswordField
+                  label="ยืนยันรหัสผ่านใหม่"
+                  value={
+                    passwordForm.confirmPassword
+                  }
+                  showPassword={
+                    showConfirmPassword
+                  }
+                  onToggleShow={() =>
+                    setShowConfirmPassword(
+                      (current) =>
+                        !current
+                    )
+                  }
+                  onChange={(
+                    value
+                  ) =>
+                    setPasswordForm(
+                      (
+                        current
+                      ) => ({
+                        ...current,
+                        confirmPassword:
+                          value,
+                      })
+                    )
+                  }
+                  placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                />
+
+                <div className="flex justify-end border-t border-purple-100 pt-4">
+                  <button
+                    type="submit"
+                    disabled={
+                      changingPassword
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {changingPassword ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        กำลังเปลี่ยนรหัสผ่าน...
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="h-4 w-4" />
+                        เปลี่ยนรหัสผ่าน
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </section>
-
-        {/* =================================================
-         * SAVE
-         * =============================================== */}
-
-        <div className="mt-5 flex justify-end">
-          <button
-            type="button"
-            disabled={
-              saving
-            }
-            onClick={() =>
-              void handleSave()
-            }
-            className="inline-flex min-w-45 items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-
-            บันทึกข้อมูล
-          </button>
+          </div>
         </div>
       </div>
 
@@ -1886,20 +2154,20 @@ export default function SitterProfilePage() {
       <style jsx global>{`
         .input-style {
           width: 100%;
-          border-radius: 0.75rem;
+          border-radius: 1rem;
           border: 1px solid rgb(226 232 240);
-          background: white;
+          background: rgb(252 250 255);
           padding: 0.75rem 1rem;
           font-size: 0.875rem;
           color: rgb(51 65 85);
           outline: none;
-          transition: 0.2s;
+          transition: 0.2s ease;
         }
 
         .input-style:focus {
           border-color: rgb(192 132 252);
-          box-shadow: 0 0 0 3px
-            rgb(243 232 255);
+          background: white;
+          box-shadow: 0 0 0 4px rgb(243 232 255);
         }
       `}</style>
     </main>
@@ -1932,6 +2200,77 @@ function SectionTitle({
     </div>
   );
 }
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  showPassword,
+  onToggleShow,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (
+    value: string
+  ) => void;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-bold text-purple-950">
+        {label}
+      </label>
+
+      <div className="relative">
+        <input
+          type={
+            showPassword
+              ? 'text'
+              : 'password'
+          }
+          value={
+            value
+          }
+          onChange={(
+            event
+          ) =>
+            onChange(
+              event.target.value
+            )
+          }
+          placeholder={
+            placeholder
+          }
+          autoComplete="new-password"
+          className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 pr-12 text-sm text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+        />
+
+        <button
+          type="button"
+          onClick={
+            onToggleShow
+          }
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-purple-50 hover:text-purple-600"
+          aria-label={
+            showPassword
+              ? 'ซ่อนรหัสผ่าน'
+              : 'แสดงรหัสผ่าน'
+          }
+        >
+          {showPassword ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 function Field({
   children,

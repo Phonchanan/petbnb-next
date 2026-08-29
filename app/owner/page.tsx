@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -8,7 +8,6 @@ import {
   PawPrint,
   Search,
   CalendarDays,
-  Heart,
   Sparkles,
   ShieldCheck,
   ArrowRight,
@@ -167,17 +166,17 @@ export default function OwnerPage() {
     'เจ้าของสัตว์เลี้ยง';
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="space-y-6">
+    <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <div className="space-y-5 sm:space-y-6">
         {/* Welcome */}
-        <section className="relative overflow-hidden rounded-4xl border border-purple-100 bg-white p-6 shadow-sm sm:p-8">
-          <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-purple-100/80 blur-2xl" />
+        <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-linear-to-br from-white via-white to-purple-50/70 p-5 shadow-sm sm:p-7">
+          <div className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full bg-purple-200/40 blur-3xl" />
 
-          <div className="absolute -bottom-16 right-32 h-40 w-40 rounded-full bg-pink-100 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-pink-100/70 blur-3xl" />
 
           <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-white/80 px-3 py-1.5 text-[11px] font-bold text-purple-700 shadow-sm backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5" />
                 Owner Dashboard
               </div>
@@ -193,54 +192,51 @@ export default function OwnerPage() {
               </p>
             </div>
 
-            <Link
-              href="/owner/pets"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700"
-            >
-              <Plus className="h-4 w-4" />
-              เพิ่มสัตว์เลี้ยง
-            </Link>
           </div>
         </section>
 
-        {/* Metrics */}
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <DashboardCard
-            icon={<PawPrint className="h-5 w-5" />}
-            title="สัตว์เลี้ยงของฉัน"
-            value={`${petCount} ตัว`}
-            description="ข้อมูลจากบัญชีของคุณ"
-            iconClass="bg-pink-100 text-pink-600"
-          />
+        {/* Overview */}
+        <section>
+          <div className="mb-3">
+            <h2 className="text-sm font-black text-[#2E1065] sm:text-base">
+              ภาพรวม
+            </h2>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              ข้อมูลสำคัญจากบัญชีของคุณ
+            </p>
+          </div>
 
-          <DashboardCard
-            icon={<CalendarDays className="h-5 w-5" />}
-            title="การจอง"
-            value="—"
-            description="เชื่อมข้อมูลในขั้น Booking"
-            iconClass="bg-purple-100 text-purple-600"
-          />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <DashboardCard
+              icon={<PawPrint className="h-4 w-4" />}
+              title="สัตว์เลี้ยงของฉัน"
+              value={`${petCount} ตัว`}
+              description="โปรไฟล์สัตว์เลี้ยงในบัญชี"
+              iconClass="bg-pink-100 text-pink-600"
+            />
 
-          <DashboardCard
-            icon={<Heart className="h-5 w-5" />}
-            title="รายการโปรด"
-            value="—"
-            description="ยังไม่มีข้อมูล Favorite จริง"
-            iconClass="bg-amber-100 text-amber-600"
-          />
+            <DashboardCard
+              icon={<CalendarDays className="h-4 w-4" />}
+              title="การจอง"
+              value="—"
+              description="ติดตามคำขอและสถานะ"
+              iconClass="bg-purple-100 text-purple-600"
+            />
 
-          <DashboardCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            title="บัญชี"
-            value="พร้อมใช้งาน"
-            description="ยืนยันผ่าน Supabase Auth"
-            iconClass="bg-emerald-100 text-emerald-600"
-          />
+            <DashboardCard
+              icon={<ShieldCheck className="h-4 w-4" />}
+              title="สถานะบัญชี"
+              value="พร้อมใช้งาน"
+              description="เข้าสู่ระบบด้วย Supabase Auth"
+              iconClass="bg-emerald-100 text-emerald-600"
+              wideOnMobile
+            />
+          </div>
         </section>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
           {/* Pets */}
-          <section className="lg:col-span-2 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-extrabold text-[#2E1065]">
@@ -288,7 +284,7 @@ export default function OwnerPage() {
                 {pets.map((pet) => (
                   <div
                     key={pet.id}
-                    className="flex items-center gap-3 rounded-2xl border border-purple-100 bg-[#FAF7FE]/60 p-4"
+                    className="flex items-center gap-3 rounded-[20px] border border-purple-100 bg-[#FCFAFF] p-3.5 transition hover:-translate-y-0.5 hover:border-purple-200 hover:bg-purple-50/60"
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-purple-100 text-2xl">
                       {pet.photo_url ? (
@@ -326,7 +322,7 @@ export default function OwnerPage() {
           </section>
 
           {/* Quick actions */}
-          <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="font-extrabold text-[#2E1065]">
               เมนูลัด
             </h2>
@@ -344,7 +340,7 @@ export default function OwnerPage() {
               />
 
               <QuickLink
-                href="/"
+                href="/owner/search"
                 icon={<Search className="h-4 w-4" />}
                 title="ค้นหาผู้รับฝาก"
                 description="ค้นหาผู้ดูแลที่เหมาะสม"
@@ -370,30 +366,32 @@ function DashboardCard({
   value,
   description,
   iconClass,
+  wideOnMobile = false,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   value: string;
   description: string;
   iconClass: string;
+  wideOnMobile?: boolean;
 }) {
   return (
-    <div className="rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm">
+    <div className={`rounded-[22px] border border-purple-100 bg-white p-4 shadow-sm sm:p-5 ${wideOnMobile ? "col-span-2 lg:col-span-1" : ""}`}>
       <div
-        className={`mb-4 flex h-10 w-10 items-center justify-center rounded-2xl ${iconClass}`}
+        className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconClass}`}
       >
         {icon}
       </div>
 
-      <div className="text-xs font-bold text-slate-500">
+      <div className="mt-3 text-[11px] font-bold text-slate-500">
         {title}
       </div>
 
-      <div className="mt-1 text-xl font-black text-[#2E1065]">
+      <div className="mt-1 text-lg font-black text-[#2E1065] sm:text-xl">
         {value}
       </div>
 
-      <div className="mt-1 text-[10px] text-slate-400">
+      <div className="mt-1 text-[10px] leading-4 text-slate-400">
         {description}
       </div>
     </div>
@@ -407,16 +405,16 @@ function QuickLink({
   description,
 }: {
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-2xl border border-purple-100 bg-[#FAF7FE] p-3.5 transition hover:border-purple-300 hover:bg-purple-50"
+      className="group flex items-center gap-3 rounded-[18px] border border-purple-100 bg-[#FCFAFF] p-3.5 transition hover:border-purple-200 hover:bg-purple-50"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-purple-600 shadow-sm">
         {icon}
       </div>
 
@@ -430,7 +428,7 @@ function QuickLink({
         </div>
       </div>
 
-      <ArrowRight className="h-3.5 w-3.5 text-purple-400" />
+      <ArrowRight className="h-3.5 w-3.5 text-purple-300 transition group-hover:translate-x-0.5 group-hover:text-purple-500" />
     </Link>
   );
 }

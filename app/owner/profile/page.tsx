@@ -11,13 +11,18 @@ import {
 } from 'react';
 
 import {
+  Bell,
   Camera,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  KeyRound,
   Loader2,
   Mail,
   Phone,
   Save,
   UserRound,
+  XCircle,
 } from 'lucide-react';
 
 import {
@@ -36,12 +41,35 @@ interface ProfileFormState {
   bio: string;
 }
 
+
+interface NotificationPreferences {
+  bookingUpdates: boolean;
+  careUpdates: boolean;
+  reviewUpdates: boolean;
+}
+
+interface PasswordFormState {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 const initialForm: ProfileFormState = {
   firstName: '',
   lastName: '',
   displayName: '',
   phone: '',
   bio: '',
+};
+
+const initialNotificationPreferences: NotificationPreferences = {
+  bookingUpdates: true,
+  careUpdates: true,
+  reviewUpdates: true,
+};
+
+const initialPasswordForm: PasswordFormState = {
+  newPassword: '',
+  confirmPassword: '',
 };
 
 export default function OwnerProfilePage() {
@@ -62,6 +90,26 @@ export default function OwnerProfilePage() {
 
   const [message, setMessage] =
     useState('');
+
+  const [toastType, setToastType] =
+    useState<'success' | 'error'>('success');
+
+  const [notificationPreferences, setNotificationPreferences] =
+    useState<NotificationPreferences>(
+      initialNotificationPreferences
+    );
+
+  const [passwordForm, setPasswordForm] =
+    useState<PasswordFormState>(initialPasswordForm);
+
+  const [changingPassword, setChangingPassword] =
+    useState(false);
+
+  const [showNewPassword, setShowNewPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [selectedAvatar, setSelectedAvatar] =
     useState<File | null>(null);
@@ -125,6 +173,27 @@ export default function OwnerProfilePage() {
       setAvatarPreview(
         current.avatar_url || null
       );
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const storedPreferences =
+        user?.user_metadata?.notification_preferences;
+
+      if (
+        storedPreferences &&
+        typeof storedPreferences === 'object'
+      ) {
+        setNotificationPreferences({
+          bookingUpdates:
+            storedPreferences.bookingUpdates ?? true,
+          careUpdates:
+            storedPreferences.careUpdates ?? true,
+          reviewUpdates:
+            storedPreferences.reviewUpdates ?? true,
+        });
+      }
     } catch (err) {
       console.error(
         'LOAD PROFILE ERROR:',
@@ -156,6 +225,21 @@ export default function OwnerProfilePage() {
       }
     };
   }, [avatarPreview]);
+
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setMessage('');
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [message]);
 
   const handleAvatarChange = (
     event: ChangeEvent<HTMLInputElement>
@@ -341,6 +425,7 @@ export default function OwnerProfilePage() {
         }
       );
 
+      setToastType('success');
       setMessage(
         'บันทึกข้อมูลโปรไฟล์เรียบร้อยแล้ว ✨'
       );
@@ -354,13 +439,122 @@ export default function OwnerProfilePage() {
         err
       );
 
-      setError(
+      setToastType('error');
+      setMessage(
         err instanceof Error
           ? err.message
           : 'ไม่สามารถบันทึกข้อมูลโปรไฟล์ได้'
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const updateNotificationPreference = async (
+    key: keyof NotificationPreferences,
+    checked: boolean
+  ) => {
+    const previousPreferences =
+      notificationPreferences;
+
+    const nextPreferences = {
+      ...notificationPreferences,
+      [key]: checked,
+    };
+
+    // อัปเดตหน้าจอทันที
+    setNotificationPreferences(nextPreferences);
+
+    try {
+      const { error: updateError } =
+        await supabase.auth.updateUser({
+          data: {
+            notification_preferences:
+              nextPreferences,
+          },
+        });
+
+      if (updateError) {
+        throw updateError;
+      }
+    } catch (err) {
+      console.error(
+        'AUTO SAVE NOTIFICATION SETTINGS ERROR:',
+        err
+      );
+
+      // หากบันทึกไม่สำเร็จ ให้คืนค่าก่อนหน้า
+      setNotificationPreferences(
+        previousPreferences
+      );
+
+      setToastType('error');
+      setMessage(
+        'ไม่สามารถอัปเดตการแจ้งเตือนได้ กรุณาลองใหม่อีกครั้ง'
+      );
+    }
+  };
+
+  const handleChangePassword = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+
+    const newPassword =
+      passwordForm.newPassword.trim();
+
+    const confirmPassword =
+      passwordForm.confirmPassword.trim();
+
+    if (newPassword.length < 8) {
+      setToastType('error');
+      setMessage(
+        'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร'
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setToastType('error');
+      setMessage(
+        'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน'
+      );
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      const { error: updateError } =
+        await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setPasswordForm(initialPasswordForm);
+
+      setToastType('success');
+      setMessage(
+        'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว'
+      );
+    } catch (err) {
+      console.error(
+        'CHANGE PASSWORD ERROR:',
+        err
+      );
+
+      setToastType('error');
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : 'ไม่สามารถเปลี่ยนรหัสผ่านได้'
+      );
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -400,13 +594,24 @@ export default function OwnerProfilePage() {
       </section>
 
       {message && (
-        <div className="mb-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700">
-          <CheckCircle2 className="h-4 w-4" />
-          {message}
+        <div
+          className={`fixed right-4 top-20 z-50 flex max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 text-xs font-bold shadow-lg sm:right-6 ${
+            toastType === 'success'
+              ? 'border-emerald-200 bg-white text-emerald-700'
+              : 'border-rose-200 bg-white text-rose-700'
+          }`}
+        >
+          {toastType === 'success' ? (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          ) : (
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          )}
+
+          <span className="leading-5">{message}</span>
         </div>
       )}
 
-      {error && (
+      {error && !message && (
         <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
           {error}
         </div>
@@ -621,7 +826,245 @@ export default function OwnerProfilePage() {
           </form>
         </section>
       </div>
+
+      {/* ACCOUNT SETTINGS */}
+      <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-2">
+        {/* Notification settings */}
+        <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                <Bell className="h-5 w-5" />
+              </div>
+
+              <div>
+              <h2 className="font-black text-purple-950">
+                การแจ้งเตือน
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-400">
+                เลือกประเภทการแจ้งเตือนที่ต้องการรับ
+              </p>
+              </div>
+            </div>
+
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-600">
+              บันทึกอัตโนมัติ
+            </span>
+          </div>
+
+          <div className="mt-5 flex-1 space-y-2.5">
+            <NotificationToggle
+              title="อัปเดตสถานะการจอง"
+              description="แจ้งเมื่อผู้รับฝากตอบรับ ปฏิเสธ หรือสถานะการจองเปลี่ยน"
+              checked={notificationPreferences.bookingUpdates}
+              onChange={(checked) =>
+                void updateNotificationPreference(
+                  'bookingUpdates',
+                  checked
+                )
+              }
+            />
+
+            <NotificationToggle
+              title="อัปเดตการดูแลสัตว์เลี้ยง"
+              description="แจ้งเมื่อผู้รับฝากเพิ่มรายงานการดูแลหรือรูปภาพ"
+              checked={notificationPreferences.careUpdates}
+              onChange={(checked) =>
+                void updateNotificationPreference(
+                  'careUpdates',
+                  checked
+                )
+              }
+            />
+
+            <NotificationToggle
+              title="รีวิวและการให้คะแนน"
+              description="แจ้งเตือนเมื่อมีรายการที่พร้อมให้คะแนนและรีวิว"
+              checked={notificationPreferences.reviewUpdates}
+              onChange={(checked) =>
+                void updateNotificationPreference(
+                  'reviewUpdates',
+                  checked
+                )
+              }
+            />
+          </div>
+
+        </section>
+
+        {/* Password */}
+        <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-100 text-pink-600">
+              <KeyRound className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h2 className="font-black text-purple-950">
+                เปลี่ยนรหัสผ่าน
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-400">
+                รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleChangePassword}
+            className="mt-5 flex flex-1 flex-col"
+          >
+            <div className="space-y-4">
+              <PasswordField
+                label="รหัสผ่านใหม่"
+                value={passwordForm.newPassword}
+                showPassword={showNewPassword}
+                onToggleShow={() =>
+                  setShowNewPassword((current) => !current)
+                }
+                onChange={(value) =>
+                  setPasswordForm((current) => ({
+                    ...current,
+                    newPassword: value,
+                  }))
+                }
+                placeholder="กรอกรหัสผ่านใหม่"
+              />
+
+              <PasswordField
+                label="ยืนยันรหัสผ่านใหม่"
+                value={passwordForm.confirmPassword}
+                showPassword={showConfirmPassword}
+                onToggleShow={() =>
+                  setShowConfirmPassword((current) => !current)
+                }
+                onChange={(value) =>
+                  setPasswordForm((current) => ({
+                    ...current,
+                    confirmPassword: value,
+                  }))
+                }
+                placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+              />
+            </div>
+
+            <div className="mt-auto flex justify-end border-t border-purple-100 pt-5">
+              <button
+                type="submit"
+                disabled={changingPassword}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {changingPassword ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    กำลังเปลี่ยนรหัสผ่าน...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="h-4 w-4" />
+                    เปลี่ยนรหัสผ่าน
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </main>
+  );
+}
+
+
+function NotificationToggle({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 transition hover:border-purple-200">
+      <div className="min-w-0">
+        <div className="text-xs font-bold text-slate-800">
+          {title}
+        </div>
+
+        <div className="mt-1 text-[10px] leading-4 text-slate-400">
+          {description}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+          checked ? 'bg-purple-600' : 'bg-slate-200'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+            checked ? 'left-5.5' : 'left-0.5'
+          }`}
+        />
+      </button>
+    </label>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  showPassword,
+  onToggleShow,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-bold text-purple-950">
+        {label}
+      </label>
+
+      <div className="relative">
+        <input
+          type={showPassword ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          autoComplete="new-password"
+          className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 pr-12 text-sm text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+        />
+
+        <button
+          type="button"
+          onClick={onToggleShow}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-purple-50 hover:text-purple-600"
+          aria-label={
+            showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'
+          }
+        >
+          {showPassword ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 

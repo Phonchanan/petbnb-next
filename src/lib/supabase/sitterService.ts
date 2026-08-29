@@ -61,6 +61,7 @@ interface ServiceRow {
   price_unit: string;
 
   is_active: boolean;
+  deleted_at?: string | null;
 
   created_at: string;
   updated_at: string;
@@ -279,12 +280,17 @@ export const SitterService = {
         price,
         price_unit,
         is_active,
+        deleted_at,
         created_at,
         updated_at
       `)
       .eq(
         'sitter_id',
         sitterId
+      )
+      .is(
+        'deleted_at',
+        null
       )
       .order(
         'created_at',
@@ -321,13 +327,6 @@ export const SitterService = {
     sitterId: string,
     categoryId: string
   ): Promise<boolean> {
-    if (
-      !sitterId ||
-      !categoryId
-    ) {
-      return false;
-    }
-
     const {
       data,
       error,
@@ -406,15 +405,7 @@ export const SitterService = {
       );
     }
 
-    if (
-      !priceUnit.trim()
-    ) {
-      throw new Error(
-        'กรุณาระบุหน่วยราคา'
-      );
-    }
-
-    /* ตรวจสิทธิ์จากหมวดที่ผ่านการรับรองจริง */
+    /* ตรวจสิทธิ์จากการสอบจริง */
 
     const certified =
       await this.isCategoryCertified(
@@ -511,46 +502,6 @@ export const SitterService = {
     priceUnit: string;
     isActive: boolean;
   }): Promise<SitterServiceItem> {
-    if (!id) {
-      throw new Error(
-        'ไม่พบข้อมูลบริการ'
-      );
-    }
-
-    if (
-      !sitterId ||
-      !categoryId
-    ) {
-      throw new Error(
-        'ข้อมูลไม่ครบถ้วน'
-      );
-    }
-
-    if (
-      !serviceName.trim()
-    ) {
-      throw new Error(
-        'กรุณาระบุชื่อบริการ'
-      );
-    }
-
-    if (
-      !Number.isFinite(price) ||
-      price <= 0
-    ) {
-      throw new Error(
-        'กรุณาระบุราคาที่ถูกต้อง'
-      );
-    }
-
-    if (
-      !priceUnit.trim()
-    ) {
-      throw new Error(
-        'กรุณาระบุหน่วยราคา'
-      );
-    }
-
     const certified =
       await this.isCategoryCertified(
         sitterId,
@@ -559,7 +510,7 @@ export const SitterService = {
 
     if (!certified) {
       throw new Error(
-        'ไม่สามารถใช้บริการกับประเภทสัตว์ที่ยังไม่ผ่านการรับรองได้'
+        'ไม่สามารถเปิดบริการสำหรับประเภทสัตว์ที่ยังไม่ผ่านการรับรองได้'
       );
     }
 
@@ -684,97 +635,31 @@ export const SitterService = {
   },
 
   /* =======================================================
-   * CHECK SERVICE HAS BOOKINGS
-   * ===================================================== */
-
-  async hasBookings(
-    serviceId: string
-  ): Promise<boolean> {
-    if (!serviceId) {
-      return false;
-    }
-
-    const {
-      count,
-      error,
-    } = await supabase
-      .from(
-        'bookings'
-      )
-      .select(
-        'id',
-        {
-          count: 'exact',
-          head: true,
-        }
-      )
-      .eq(
-        'service_id',
-        serviceId
-      );
-
-    if (error) {
-      console.error(
-        'CHECK SERVICE BOOKINGS ERROR:',
-        error
-      );
-
-      throw new Error(
-        error.message ||
-          'ไม่สามารถตรวจสอบประวัติการจองได้'
-      );
-    }
-
-    return (
-      (count ?? 0) > 0
-    );
-  },
-
-  /* =======================================================
-   * DELETE SERVICE
+   * DELETE
    * ===================================================== */
 
   async deleteService(
     id: string,
     sitterId: string
   ): Promise<void> {
-    if (
-      !id ||
-      !sitterId
-    ) {
-      throw new Error(
-        'ข้อมูลบริการไม่ครบถ้วน'
-      );
-    }
-
     /*
-     * ถ้าบริการเคยมี Booking
-     * ห้ามลบเพื่อรักษาประวัติการจอง
+     * Soft delete:
+     * ไม่ลบ record จริง เพื่อให้ Booking ที่ COMPLETED
+     * ยังอ้างอิง service เดิมและแสดงประวัติได้
      */
-
-    const hasBooking =
-      await this.hasBookings(
-        id
-      );
-
-    if (hasBooking) {
-      throw new Error(
-        'ไม่สามารถลบบริการนี้ได้ เนื่องจากมีประวัติการจองแล้ว กรุณาปิดบริการแทน'
-      );
-    }
-
-    /*
-     * ไม่มี Booking
-     * สามารถลบบริการได้
-     */
-
     const {
       error,
     } = await supabase
       .from(
         'sitter_services'
       )
-      .delete()
+      .update({
+        is_active: false,
+        deleted_at:
+          new Date().toISOString(),
+        updated_at:
+          new Date().toISOString(),
+      })
       .eq(
         'id',
         id
@@ -785,28 +670,6 @@ export const SitterService = {
       );
 
     if (error) {
-      console.error(
-        'DELETE SITTER SERVICE ERROR:',
-        error
-      );
-
-      /*
-       * ป้องกันกรณีมี Booking
-       * แต่ RLS ทำให้ query ก่อนหน้าไม่เห็น
-       */
-
-      if (
-        error.message
-          .toLowerCase()
-          .includes(
-            'foreign key constraint'
-          )
-      ) {
-        throw new Error(
-          'ไม่สามารถลบบริการนี้ได้ เนื่องจากมีประวัติการจองแล้ว กรุณาปิดบริการแทน'
-        );
-      }
-
       throw new Error(
         error.message ||
           'ไม่สามารถลบบริการได้'

@@ -27,6 +27,8 @@ import {
   SitterService,
 } from '@/lib/supabase/sitterService';
 
+import { supabase } from '@/lib/supabase/client';
+
 /* =========================================================
  * FORM
  * ======================================================= */
@@ -526,12 +528,9 @@ export default function SitterServicesPage() {
     async (
       service: SitterServiceItem
     ) => {
-      const confirmed =
-        window.confirm(
-          `ต้องการลบบริการ "${service.serviceName}" หรือไม่?`
-        );
-
-      if (!confirmed) {
+      if (
+        deletingId === service.id
+      ) {
         return;
       }
 
@@ -544,6 +543,71 @@ export default function SitterServicesPage() {
 
         setError('');
         setMessage('');
+
+        /*
+         * ลบบริการได้เมื่อไม่มีงานที่ยังค้างอยู่
+         *
+         * สถานะที่ถือว่ายังค้าง:
+         * - PENDING      รอการตอบรับ
+         * - CONFIRMED    ยืนยันแล้ว
+         * - IN_PROGRESS  กำลังให้บริการ
+         *
+         * COMPLETED / REJECTED / CANCELLED
+         * ไม่ถือว่าเป็นงานค้าง
+         */
+        const {
+          data: activeBookings,
+          error: bookingError,
+        } = await supabase
+          .from('bookings')
+          .select(`
+            id,
+            status
+          `)
+          .eq(
+            'service_id',
+            service.id
+          )
+          .eq(
+            'sitter_id',
+            service.sitterId
+          )
+          .in(
+            'status',
+            [
+              'PENDING',
+              'CONFIRMED',
+              'IN_PROGRESS',
+            ]
+          )
+          .limit(1);
+
+        if (bookingError) {
+          throw new Error(
+            bookingError.message ||
+              'ไม่สามารถตรวจสอบรายการจองของบริการได้'
+          );
+        }
+
+        if (
+          activeBookings &&
+          activeBookings.length > 0
+        ) {
+          showError(
+            'ยังไม่สามารถลบบริการนี้ได้ เนื่องจากมีคำขอหรือรายการรับฝากที่ยังดำเนินการไม่เสร็จ'
+          );
+
+          return;
+        }
+
+        const confirmed =
+          window.confirm(
+            `ต้องการลบบริการ "${service.serviceName}" หรือไม่?`
+          );
+
+        if (!confirmed) {
+          return;
+        }
 
         await SitterService.deleteService(
           service.id,
@@ -715,12 +779,13 @@ export default function SitterServicesPage() {
         }}
       />
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
         {/* =================================================
          * HEADER
          * =============================================== */}
 
-        <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+        <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-purple-100/70 blur-3xl" />
           <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
             <BadgeCheck className="h-4 w-4" />
 
@@ -741,7 +806,7 @@ export default function SitterServicesPage() {
          * CERTIFIED CATEGORIES
          * =============================================== */}
 
-        <section className="mt-5 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+        <section className="mt-5 rounded-[26px] border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
           <div>
             <h2 className="font-black text-purple-950">
               ประเภทสัตว์ที่ผ่านการรับรอง
@@ -775,7 +840,7 @@ export default function SitterServicesPage() {
                     key={
                       category.categoryId
                     }
-                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3.5 py-2.5"
                   >
                     <span className="text-lg">
                       {category.icon ||
@@ -803,10 +868,12 @@ export default function SitterServicesPage() {
         </section>
 
         {/* =================================================
-         * FORM
+         * MAIN CONTENT - TWO COLUMNS
          * =============================================== */}
 
-        <section className="mt-5 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          {/* LEFT: FORM */}
+          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-black text-purple-950">
@@ -835,7 +902,7 @@ export default function SitterServicesPage() {
             )}
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {/* CATEGORY */}
 
             <div>
@@ -859,7 +926,7 @@ export default function SitterServicesPage() {
                     event.target.value
                   )
                 }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">
                   เลือกประเภทสัตว์ที่ผ่านการรับรอง
@@ -906,7 +973,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="เช่น รับฝากรายวัน"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
               />
             </div>
 
@@ -932,7 +999,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="เช่น 250"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
               />
             </div>
 
@@ -955,7 +1022,7 @@ export default function SitterServicesPage() {
                     event.target.value
                   )
                 }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
               >
                 <option value="DAY">
                   บาท / วัน
@@ -988,7 +1055,7 @@ export default function SitterServicesPage() {
                   )
                 }
                 placeholder="อธิบายรายละเอียดการดูแล..."
-                className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 text-sm leading-6 outline-none transition focus:border-purple-300 focus:ring-2 focus:ring-purple-100"
+                className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
               />
             </div>
           </div>
@@ -1003,7 +1070,7 @@ export default function SitterServicesPage() {
             onClick={() =>
               void handleSave()
             }
-            className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 text-sm font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1019,11 +1086,8 @@ export default function SitterServicesPage() {
           </button>
         </section>
 
-        {/* =================================================
-         * SERVICES
-         * =============================================== */}
-
-        <section className="mt-5 pb-10">
+          {/* RIGHT: SERVICES */}
+          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
           <div>
             <h2 className="text-lg font-black text-purple-950">
               บริการที่สร้างไว้
@@ -1048,7 +1112,7 @@ export default function SitterServicesPage() {
               </p>
             </div>
           ) : (
-            <div className="mt-4 grid items-stretch gap-4 md:grid-cols-2">
+            <div className="mt-4 grid items-stretch gap-3">
               {services.map(
                 (
                   service
@@ -1063,7 +1127,7 @@ export default function SitterServicesPage() {
                       key={
                         service.id
                       }
-                      className="flex h-full flex-col rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm"
+                      className="flex h-full flex-col rounded-[22px] border border-purple-100 bg-gradient-to-br from-white to-purple-50/35 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
                     >
                       {/* SERVICE INFO */}
 
@@ -1138,7 +1202,7 @@ export default function SitterServicesPage() {
                        * sm:grid-cols-3 ทำให้ปุ่มทั้ง 3 กว้างเท่ากัน
                        * =============================================== */}
 
-                      <div className="mt-auto grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
+                      <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
                         {/* EDIT */}
 
                         <button
@@ -1149,10 +1213,12 @@ export default function SitterServicesPage() {
                             )
                           }
                           className="
+                            col-span-2
                             inline-flex
                             h-11
                             w-full
                             items-center
+                            sm:col-span-1
                             justify-center
                             gap-2
                             rounded-xl
@@ -1266,7 +1332,8 @@ export default function SitterServicesPage() {
               )}
             </div>
           )}
-        </section>
+          </section>
+        </div>
       </div>
     </main>
   );

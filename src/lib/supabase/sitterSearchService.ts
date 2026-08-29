@@ -65,7 +65,10 @@ export interface SitterSearchResult {
   /** คะแนน Review แปลงเป็น 0-100 */
   reviewScore: number;
 
-  /** คะแนนประสบการณ์ 0-100 (5 ปีขึ้นไป = 100) */
+  /** จำนวนงานที่ให้บริการสำเร็จ */
+  completedJobs: number;
+
+  /** คะแนนประสบการณ์จากงานสำเร็จ 0-100 (30 งานขึ้นไป = 100) */
   experienceScore: number;
 
   /** คะแนน Core Quiz ล่าสุดที่ผ่าน */
@@ -484,9 +487,11 @@ function calculateReviewScore(averageRating: number): number {
   return clampScore((averageRating / 5) * 100);
 }
 
-function calculateExperienceScore(experienceYears: number): number {
-  const years = Math.max(0, Number(experienceYears) || 0);
-  return clampScore((Math.min(years, 5) / 5) * 100);
+function calculateExperienceScore(completedJobs: number): number {
+  const jobs = Math.max(0, Number(completedJobs) || 0);
+
+  // ตามรายงาน: 30 งาน = 100 คะแนน
+  return clampScore((Math.min(jobs, 30) / 30) * 100);
 }
 
 function calculateCombinedQuizScore(
@@ -533,13 +538,16 @@ function calculateRecommendationScore({
   isNewSitter: boolean;
 }): number {
   if (isNewSitter) {
-    // Cold Start: Quiz 70% + Experience 30%
-    return roundScore(quizScore * 0.7 + experienceScore * 0.3);
+    // ตามรายงาน Cold Start: ใช้ Quiz 100%
+    return roundScore(quizScore);
   }
 
-  // สูตรปกติ: Review 50% + Quiz 30% + Experience 20%
+  // ตามรายงาน:
+  // Review 50% + Completed Jobs/Experience 30% + Quiz 20%
   return roundScore(
-    reviewScore * 0.5 + quizScore * 0.3 + experienceScore * 0.2
+    reviewScore * 0.5 +
+      experienceScore * 0.3 +
+      quizScore * 0.2
   );
 }
 
@@ -984,7 +992,45 @@ export const SitterSearchService = {
     }
 
     /* =====================================================
-     * 7. QUIZ ATTEMPTS
+     * 7. COMPLETED BOOKINGS
+     *
+     * ใช้ RPC เพื่อเปิดเผยเฉพาะ sitter_id + จำนวนงานสำเร็จ
+     * โดยไม่เปิดรายละเอียด Booking ของ Sitter ให้ Owner
+     * =================================================== */
+
+    const completedJobsBySitter: Record<string, number> = {};
+
+    if (visibleSitterIds.length > 0) {
+      const { data, error } = await supabase.rpc(
+        'get_sitter_completed_job_counts',
+        {
+          p_sitter_ids: visibleSitterIds,
+        }
+      );
+
+      if (error) {
+        console.error(
+          'GET SITTER COMPLETED JOB COUNTS ERROR:',
+          error
+        );
+      } else {
+        for (const row of data ?? []) {
+          const sitterId = cleanId(row.sitter_id);
+
+          if (!sitterId) {
+            continue;
+          }
+
+          completedJobsBySitter[sitterId] = Math.max(
+            0,
+            Number(row.completed_jobs) || 0
+          );
+        }
+      }
+    }
+
+    /* =====================================================
+     * 8. QUIZ ATTEMPTS
      * =================================================== */
 
     let quizAttempts: QuizAttemptRow[] = [];
@@ -1013,7 +1059,7 @@ export const SitterSearchService = {
     }
 
     /* =====================================================
-     * 8. QUIZ SET META
+     * 9. QUIZ SET META
      * =================================================== */
 
     const quizSetIds = uniqueStrings(
@@ -1043,7 +1089,7 @@ export const SitterSearchService = {
     }
 
     /* =====================================================
-     * 9. MAP RESULT
+     * 10. MAP RESULT
      * =================================================== */
 
     const results =
@@ -1218,16 +1264,21 @@ export const SitterSearchService = {
            * RECOMMENDATION
            * ============================================= */
 
+          // experienceYears ยังคงเก็บไว้สำหรับแสดงในโปรไฟล์
+          // แต่ Recommendation ตามรายงานใช้ "จำนวนงานที่สำเร็จ"
           const experienceYears = Number(
             sitter.experience_years ?? 0
           );
+
+          const completedJobs =
+            completedJobsBySitter[sitter.id] ?? 0;
 
           const reviewScore = roundScore(
             calculateReviewScore(averageRating)
           );
 
           const experienceScore = roundScore(
-            calculateExperienceScore(experienceYears)
+            calculateExperienceScore(completedJobs)
           );
 
           const sitterQuizAttempts = quizAttempts.filter(
@@ -1292,7 +1343,10 @@ export const SitterSearchService = {
             activeCategoryScores
           );
 
-          const isNewSitter = reviewCount === 0;
+          // Cold Start = ยังไม่มีทั้งประวัติรีวิวและงานที่สำเร็จ
+          const isNewSitter =
+            reviewCount === 0 &&
+            completedJobs === 0;
 
           const recommendationScore = calculateRecommendationScore({
             reviewScore,
@@ -1372,6 +1426,8 @@ export const SitterSearchService = {
 
             reviewScore,
 
+            completedJobs,
+
             experienceScore,
 
             coreQuizScore: roundScore(coreQuizScore),
@@ -1430,6 +1486,9 @@ export const SitterSearchService = {
           quizScore:
             sitter.quizScore,
 
+          completedJobs:
+            sitter.completedJobs,
+
           experienceScore:
             sitter.experienceScore,
 
@@ -1455,7 +1514,7 @@ export const SitterSearchService = {
         return b.reviewCount - a.reviewCount;
       }
 
-      return b.experienceYears - a.experienceYears;
+      return b.completedJobs - a.completedJobs;
     });
 
     return sortedResults;

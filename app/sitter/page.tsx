@@ -41,6 +41,8 @@ import {
   type SitterRatingSummary,
 } from '@/lib/supabase/reviewService';
 
+import { supabase } from '@/lib/supabase/client';
+
 /* =========================================================
  * INITIAL DATA
  * ======================================================= */
@@ -106,6 +108,17 @@ export default function SitterDashboardPage() {
   const [
     error,
     setError,
+  ] = useState('');
+
+
+  const [
+    updatingAvailability,
+    setUpdatingAvailability,
+  ] = useState(false);
+
+  const [
+    availabilityMessage,
+    setAvailabilityMessage,
   ] = useState('');
 
   /* =======================================================
@@ -216,6 +229,103 @@ export default function SitterDashboardPage() {
   }, [router]);
 
   /* =======================================================
+   * AVAILABILITY
+   * ===================================================== */
+
+  const handleToggleAvailability = async () => {
+    if (!sitterProfile || updatingAvailability) {
+      return;
+    }
+
+    const nextValue = !sitterProfile.isAvailable;
+
+    try {
+      setUpdatingAvailability(true);
+      setError('');
+      setAvailabilityMessage('');
+
+      /*
+       * ตรวจการอนุมัติจาก sitter_profiles โดยตรง
+       * เพราะ profile มาจาก profiles และไม่ใช่แหล่งสถานะ
+       * Verification ของ Sitter
+       */
+      if (nextValue) {
+        const {
+          data: verificationData,
+          error: verificationError,
+        } = await supabase
+          .from('sitter_profiles')
+          .select(`
+            is_verified,
+            verification_status
+          `)
+          .eq('id', sitterProfile.id)
+          .maybeSingle();
+
+        if (verificationError) {
+          throw new Error(
+            verificationError.message
+          );
+        }
+
+        const isApproved =
+          verificationData?.is_verified === true ||
+          String(
+            verificationData?.verification_status ?? ''
+          ).toUpperCase() === 'APPROVED';
+
+        if (!isApproved) {
+          setError(
+            'บัญชียังไม่ได้รับการอนุมัติจาก Admin จึงยังไม่สามารถเปิดรับฝากได้'
+          );
+          return;
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('sitter_profiles')
+        .update({
+          is_available: nextValue,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', sitterProfile.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setSitterProfile((current) =>
+        current
+          ? {
+              ...current,
+              isAvailable: nextValue,
+            }
+          : current
+      );
+
+      setAvailabilityMessage(
+        nextValue
+          ? 'เปิดรับฝากเรียบร้อยแล้ว'
+          : 'ปิดรับฝากเรียบร้อยแล้ว'
+      );
+
+      window.setTimeout(() => {
+        setAvailabilityMessage('');
+      }, 2200);
+    } catch (err) {
+      console.error('UPDATE SITTER AVAILABILITY ERROR:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'ไม่สามารถอัปเดตสถานะรับฝากได้'
+      );
+    } finally {
+      setUpdatingAvailability(false);
+    }
+  };
+
+  /* =======================================================
    * LOADING
    * ===================================================== */
 
@@ -271,7 +381,8 @@ export default function SitterDashboardPage() {
           WELCOME
       ================================================= */}
 
-      <section className="rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+      <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-100/60 blur-3xl" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
           <div className="min-w-0">
@@ -291,16 +402,78 @@ export default function SitterDashboardPage() {
           </div>
 
           {sitterProfile && (
-            <div
-              className={`w-fit shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold ${
-                sitterProfile.isAvailable
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-slate-100 text-slate-500'
-              }`}
-            >
-              {sitterProfile.isAvailable
-                ? '● พร้อมรับฝาก'
-                : '● ปิดรับฝาก'}
+            <div className="w-full sm:w-auto">
+              <div className="flex flex-col items-start gap-2 sm:items-end">
+                <p className="text-[10px] font-bold text-slate-400">
+                  สถานะการรับฝาก
+                </p>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={sitterProfile.isAvailable}
+                  aria-label={
+                    sitterProfile.isAvailable
+                      ? 'ปิดรับฝาก'
+                      : 'เปิดรับฝาก'
+                  }
+                  disabled={updatingAvailability}
+                  onClick={() =>
+                    void handleToggleAvailability()
+                  }
+                  className={`group inline-flex min-w-[164px] items-center justify-between gap-3 rounded-full border px-2 py-2 pr-3 shadow-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60 ${
+                    sitterProfile.isAvailable
+                      ? 'border-emerald-200 bg-white hover:border-emerald-300'
+                      : 'border-slate-200 bg-white hover:border-purple-200'
+                  }`}
+                >
+                  <span
+                    className={`relative h-8 w-14 shrink-0 rounded-full transition-all duration-200 ${
+                      sitterProfile.isAvailable
+                        ? 'bg-emerald-500'
+                        : 'bg-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm transition-all duration-200 ${
+                        sitterProfile.isAvailable
+                          ? 'left-7'
+                          : 'left-1'
+                      }`}
+                    >
+                      {updatingAvailability && (
+                        <Loader2 className="h-3 w-3 animate-spin text-purple-500" />
+                      )}
+                    </span>
+                  </span>
+
+                  <span className="min-w-0 text-left">
+                    <span
+                      className={`block text-[11px] font-black ${
+                        sitterProfile.isAvailable
+                          ? 'text-emerald-700'
+                          : 'text-slate-600'
+                      }`}
+                    >
+                      {sitterProfile.isAvailable
+                        ? 'เปิดรับฝาก'
+                        : 'ปิดรับฝาก'}
+                    </span>
+
+                    <span className="mt-0.5 block text-[9px] text-slate-400">
+                      {sitterProfile.isAvailable
+                        ? 'พร้อมรับคำขอ'
+                        : 'พักรับงานชั่วคราว'}
+                    </span>
+                  </span>
+                </button>
+
+                {availabilityMessage && (
+                  <p className="pr-1 text-[9px] font-bold text-emerald-600">
+                    {availabilityMessage}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
