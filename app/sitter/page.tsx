@@ -166,16 +166,228 @@ export default function SitterDashboardPage() {
             current.id
           );
 
-        if (!sitterData) {
-          setSitterProfile(null);
+        /*
+         * =====================================================
+         * SITTER ONBOARDING GUARD
+         *
+         * ทุกครั้งที่ Sitter เข้ามาที่ /sitter
+         * ระบบจะตรวจว่าทำขั้นตอนไหนค้างอยู่
+         * แล้วพากลับไปทำต่ออัตโนมัติ
+         * ===================================================
+         */
 
-          setError(
-            'คุณยังไม่ได้สร้างโปรไฟล์ผู้รับฝาก กรุณาสร้างโปรไฟล์ก่อนเริ่มรับงาน'
+        /*
+         * 1. ยังไม่มี sitter_profiles
+         *    = ยังไม่ได้เริ่ม Onboarding / Consent
+         */
+        if (!sitterData) {
+          router.replace(
+            '/sitter/onboarding/consent'
           );
 
           return;
         }
 
+        /*
+         * 2. โหลดข้อมูล Verification
+         */
+        const {
+          data: verification,
+          error: verificationError,
+        } = await supabase
+          .from('sitter_verifications')
+          .select(`
+            id,
+            verification_status,
+            consent_accepted,
+            identity_document_url,
+            selfie_url
+          `)
+          .eq(
+            'sitter_id',
+            sitterData.id
+          )
+          .maybeSingle();
+
+        if (verificationError) {
+          throw new Error(
+            verificationError.message
+          );
+        }
+
+        /*
+         * ยังไม่มี verification row
+         * หรือยังไม่ได้ยอมรับ PDPA
+         */
+        if (
+          !verification ||
+          verification.consent_accepted !== true
+        ) {
+          router.replace(
+            '/sitter/onboarding/consent'
+          );
+
+          return;
+        }
+
+        const verificationStatus =
+          String(
+            verification.verification_status ??
+              ''
+          ).toUpperCase();
+
+        /*
+         * 3. ถ้า Admin ปฏิเสธ
+         *    ให้ไปหน้าสถานะเพื่อดูเหตุผล/แก้ไข
+         */
+        if (
+          verificationStatus ===
+          'REJECTED'
+        ) {
+          router.replace(
+            '/sitter/onboarding/verification-status'
+          );
+
+          return;
+        }
+
+        /*
+         * 4. เอกสารยังไม่ครบ
+         *    ให้กลับไปแนบเอกสารต่อ
+         */
+        if (
+          !verification.identity_document_url ||
+          !verification.selfie_url
+        ) {
+          router.replace(
+            '/sitter/onboarding/verification'
+          );
+
+          return;
+        }
+
+        /*
+         * 5. ทำ Quiz ครบแล้วและกำลังรอ Admin
+         */
+        if (
+          verificationStatus ===
+          'PENDING_APPROVAL'
+        ) {
+          router.replace(
+            '/sitter/onboarding/verification-status'
+          );
+
+          return;
+        }
+
+        /*
+         * 6. APPROVED แล้วเท่านั้น
+         *    จึงเข้า Dashboard ได้
+         */
+        const sitterIsApproved =
+          verificationStatus ===
+            'APPROVED';
+
+        if (!sitterIsApproved) {
+          /*
+           * หา Core Quiz ที่กำลังใช้งาน
+           */
+          const {
+            data: coreQuiz,
+            error: coreQuizError,
+          } = await supabase
+            .from('quiz_sets')
+            .select('id')
+            .eq(
+              'quiz_type',
+              'CORE'
+            )
+            .eq(
+              'is_active',
+              true
+            )
+            .order(
+              'created_at',
+              {
+                ascending: true,
+              }
+            )
+            .limit(1)
+            .maybeSingle();
+
+          if (coreQuizError) {
+            throw new Error(
+              coreQuizError.message
+            );
+          }
+
+          if (!coreQuiz) {
+            throw new Error(
+              'ยังไม่มี Core Quiz ในระบบ'
+            );
+          }
+
+          /*
+           * ตรวจว่า Core Quiz ผ่านแล้วหรือยัง
+           */
+          const {
+            data: passedCoreAttempt,
+            error: coreAttemptError,
+          } = await supabase
+            .from('quiz_attempts')
+            .select('id')
+            .eq(
+              'sitter_id',
+              sitterData.id
+            )
+            .eq(
+              'quiz_set_id',
+              coreQuiz.id
+            )
+            .eq(
+              'passed',
+              true
+            )
+            .limit(1)
+            .maybeSingle();
+
+          if (coreAttemptError) {
+            throw new Error(
+              coreAttemptError.message
+            );
+          }
+
+          /*
+           * เอกสารครบ แต่ยังไม่ผ่าน Core Quiz
+           */
+          if (!passedCoreAttempt) {
+            router.replace(
+              '/sitter/onboarding/core-quiz'
+            );
+
+            return;
+          }
+
+          /*
+           * Core Quiz ผ่านแล้ว
+           * แต่สถานะยังไม่ PENDING_APPROVAL
+           * = ยังต้องเลือก/ทำ Category Quiz ให้ครบ
+           *
+           * หากเคยเลือก Category ไว้ใน sessionStorage
+           * แต่ปิดเว็บ ค่าอาจหายได้ จึงส่งกลับหน้า Categories
+           * เพื่อให้เริ่มต่ออย่างปลอดภัย
+           */
+          router.replace(
+            '/sitter/onboarding/categories'
+          );
+
+          return;
+        }
+
+        /*
+         * ผ่าน Onboarding และ Admin อนุมัติแล้ว
+         * จึงเริ่มโหลด Dashboard
+         */
         setSitterProfile(
           sitterData
         );
