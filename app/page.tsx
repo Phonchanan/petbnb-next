@@ -208,12 +208,7 @@ export default function HomePage() {
             >
               เกี่ยวกับเรา
             </a>
-            <Link
-              href="/signup?role=SITTER"
-              className="text-xs font-semibold text-slate-600 transition hover:text-violet-700"
-            >
-              สำหรับ Sitter
-            </Link>
+           
           </nav>
 
           <div className="flex items-center gap-2">
@@ -286,13 +281,6 @@ export default function HomePage() {
                 เกี่ยวกับเรา
               </a>
 
-              <Link
-                href="/signup?role=SITTER"
-                onClick={closeMobileMenu}
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
-              >
-                สำหรับ Sitter
-              </Link>
 
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-purple-100 pt-3 sm:hidden">
                 <Link
@@ -637,7 +625,7 @@ export default function HomePage() {
                 <Heart className="h-3 w-3 fill-pink-400 text-pink-400" />
               </Link>
 
-              <p className="mt-3 max-w-[260px] text-[10px] leading-[1.7] text-slate-500">
+              <p className="mt-3 max-w-65 text-[10px] leading-[1.7] text-slate-500">
                 แพลตฟอร์มบริการรับฝากสัตว์เลี้ยงที่เชื่อมต่อเจ้าของสัตว์เลี้ยงกับผู้รับฝากที่ไว้ใจได้
               </p>
 
