@@ -213,9 +213,7 @@ export default function OwnerBookingsPage() {
     ) => {
       if (
         booking.status !==
-          'PENDING' &&
-        booking.status !==
-          'CONFIRMED'
+        'PENDING'
       ) {
         return;
       }
@@ -476,9 +474,7 @@ export default function OwnerBookingsPage() {
 
               const canCancel =
                 booking.status ===
-                  'PENDING' ||
-                booking.status ===
-                  'CONFIRMED';
+                'PENDING';
 
               return (
                 <article

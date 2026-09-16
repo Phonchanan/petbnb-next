@@ -266,11 +266,8 @@ export default function LoginPage() {
     };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#FAF7FE] px-4 py-10">
-      {/* =====================================
-       * ERROR TOAST
-       * =================================== */}
-
+    <main className="min-h-screen bg-[#F8F4FC]">
+      {/* ERROR TOAST */}
       {errorMessage && (
         <div className="fixed right-4 top-4 z-9999 w-[calc(100%-2rem)] max-w-sm">
           <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-white p-4 shadow-xl shadow-rose-100/50">
@@ -302,192 +299,255 @@ export default function LoginPage() {
         </div>
       )}
 
-      <div className="w-full max-w-md">
-        <div className="rounded-4xl border border-purple-100 bg-white p-6 shadow-2xl shadow-purple-200/40 sm:p-8">
-          {/* =================================
-           * LOGO
-           * =============================== */}
+      <div className="grid min-h-screen lg:grid-cols-[1.08fr_0.92fr]">
+        {/* LEFT VISUAL */}
+        <section className="relative hidden overflow-hidden bg-gradient-to-br from-[#F5E9FF] via-[#F8ECF4] to-[#FFF3E8] lg:flex lg:flex-col lg:justify-between lg:p-10 xl:p-14">
+          <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/45 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 right-[-40px] h-80 w-80 rounded-full bg-purple-200/35 blur-3xl" />
 
-          <div className="mb-7 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-linear-to-br from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-200">
-              <PawPrint className="h-8 w-8" />
+          <div className="relative z-10">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-600 text-white shadow-lg shadow-purple-200">
+                <PawPrint className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-lg font-black leading-none text-purple-950">
+                  PetBnB
+                </p>
+
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-purple-400">
+                  Pet Care Platform
+                </p>
+              </div>
+            </Link>
+
+            <div className="mt-14 max-w-xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-purple-400">
+                Welcome back
+              </p>
+
+              <h1 className="mt-3 text-4xl font-black leading-tight text-[#2E1065] xl:text-5xl">
+                ยินดีต้อนรับกลับสู่
+                <span className="block text-purple-600">
+                  PetBnB
+                </span>
+              </h1>
+
+              <p className="mt-4 max-w-md text-sm leading-7 text-purple-950/55">
+                กลับมาจัดการการจอง ดูแลน้อง ๆ และเชื่อมต่อกับคนรักสัตว์ได้จากที่เดียว
+              </p>
+            </div>
+          </div>
+
+          {/* ILLUSTRATION-LIKE PANEL */}
+          <div className="relative z-10 mx-auto mt-10 w-full max-w-xl">
+            <div className="relative overflow-hidden rounded-[36px] bg-white/45 p-7 shadow-[0_30px_80px_rgba(88,28,135,0.10)] backdrop-blur-sm">
+              <div className="absolute right-7 top-7 h-24 w-20 rounded-t-[42px] rounded-b-[18px] border-8 border-white/80 bg-sky-100/80">
+                <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 bg-white/80" />
+                <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 bg-white/80" />
+              </div>
+
+              <div className="flex min-h-[310px] items-end gap-5">
+                <div className="relative flex-1">
+                  <div className="absolute bottom-28 left-2 h-20 w-12 rounded-t-full bg-emerald-200/80" />
+                  <div className="absolute bottom-24 left-10 h-16 w-4 rotate-12 rounded-full bg-emerald-300/80" />
+
+                  <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full bg-[#E7D8FF] shadow-inner">
+                    <div className="text-[86px] leading-none">
+                      🐶
+                    </div>
+                  </div>
+
+                  <div className="mx-auto mt-[-16px] h-16 w-52 rounded-[24px] bg-[#CDB4FF] shadow-md" />
+                </div>
+
+                <div className="w-40 space-y-3">
+                  <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-purple-400">
+                      Trusted care
+                    </p>
+
+                    <p className="mt-2 text-xs font-black text-purple-950">
+                      ปลอดภัย ใส่ใจ และติดตามได้
+                    </p>
+                  </div>
+
+                  <div className="rounded-[24px] bg-[#FFF4D8] p-4 shadow-sm">
+                    <p className="text-xs font-black text-amber-800">
+                      🐾 สำหรับ Owner & Sitter
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT FORM */}
+        <section className="flex min-h-screen items-center justify-center bg-white px-4 py-10 sm:px-8 lg:px-10 xl:px-16">
+          <div className="w-full max-w-md">
+            <div className="mb-8 lg:hidden">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-600 text-white shadow-lg shadow-purple-200">
+                  <PawPrint className="h-5 w-5" />
+                </div>
+
+                <span className="text-lg font-black text-purple-950">
+                  PetBnB
+                </span>
+              </Link>
             </div>
 
-            <h1 className="mt-4 text-2xl font-extrabold text-[#2E1065]">
-              ยินดีต้อนรับกลับมา
-            </h1>
+            <div className="mb-8">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+                Welcome back
+              </p>
 
-            <p className="mt-1 text-sm text-slate-500">
-              เข้าสู่ระบบเพื่อดูแลทุกเรื่องของน้องๆ บน PetBnB
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-[#2E1065]">
+                เข้าสู่ระบบ
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                กรอกอีเมลและรหัสผ่านเพื่อเข้าสู่บัญชีของคุณ
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+            >
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-xs font-black text-slate-600"
+                >
+                  อีเมล
+                </label>
+
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(
+                        event.target.value
+                      );
+
+                      if (errorMessage) {
+                        setErrorMessage('');
+                      }
+                    }}
+                    required
+                    autoComplete="email"
+                    placeholder="example@email.com"
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] py-3.5 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-xs font-black text-slate-600"
+                >
+                  รหัสผ่าน
+                </label>
+
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+
+                  <input
+                    id="password"
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(
+                        event.target.value
+                      );
+
+                      if (errorMessage) {
+                        setErrorMessage('');
+                      }
+                    }}
+                    required
+                    autoComplete="current-password"
+                    placeholder="กรอกรหัสผ่าน"
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] py-3.5 pl-11 pr-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (previous) =>
+                          !previous
+                      )
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 transition hover:text-purple-600"
+                    aria-label={
+                      showPassword
+                        ? 'ซ่อนรหัสผ่าน'
+                        : 'แสดงรหัสผ่าน'
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 py-3.5 text-sm font-black text-white shadow-[0_10px_24px_rgba(124,58,237,0.22)] transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    กำลังเข้าสู่ระบบ...
+                  </>
+                ) : (
+                  <>
+                    เข้าสู่ระบบ
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-7 border-t border-purple-50 pt-6 text-center text-xs text-slate-500">
+              ยังไม่มีบัญชี?{' '}
+
+              <Link
+                href="/signup"
+                className="font-black text-purple-700 hover:underline"
+              >
+                สมัครสมาชิก
+              </Link>
+            </div>
+
+            <p className="mt-8 text-center text-[10px] leading-5 text-slate-300">
+              PetBnB • พื้นที่สำหรับคนรักสัตว์
             </p>
           </div>
-
-          {/* =================================
-           * FORM
-           * =============================== */}
-
-          <form
-            onSubmit={
-              handleSubmit
-            }
-            className="space-y-4"
-          >
-            {/* EMAIL */}
-
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-xs font-bold text-purple-950"
-              >
-                อีเมล
-              </label>
-
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
-
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(
-                    event
-                  ) => {
-                    setEmail(
-                      event
-                        .target
-                        .value
-                    );
-
-                    if (
-                      errorMessage
-                    ) {
-                      setErrorMessage(
-                        ''
-                      );
-                    }
-                  }}
-                  required
-                  autoComplete="email"
-                  placeholder="example@email.com"
-                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
-                />
-              </div>
-            </div>
-
-            {/* PASSWORD */}
-
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-xs font-bold text-purple-950"
-              >
-                รหัสผ่าน
-              </label>
-
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
-
-                <input
-                  id="password"
-                  type={
-                    showPassword
-                      ? 'text'
-                      : 'password'
-                  }
-                  value={
-                    password
-                  }
-                  onChange={(
-                    event
-                  ) => {
-                    setPassword(
-                      event
-                        .target
-                        .value
-                    );
-
-                    if (
-                      errorMessage
-                    ) {
-                      setErrorMessage(
-                        ''
-                      );
-                    }
-                  }}
-                  required
-                  autoComplete="current-password"
-                  placeholder="กรอกรหัสผ่าน"
-                  className="w-full rounded-2xl border border-purple-100 bg-[#FAF8FE] py-3 pl-11 pr-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowPassword(
-                      (
-                        previous
-                      ) =>
-                        !previous
-                    )
-                  }
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 transition hover:text-purple-600"
-                  aria-label={
-                    showPassword
-                      ? 'ซ่อนรหัสผ่าน'
-                      : 'แสดงรหัสผ่าน'
-                  }
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* =================================
-             * LOGIN BUTTON
-             * =============================== */}
-
-            <button
-              type="submit"
-              disabled={
-                isLoading
-              }
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-purple-600 to-violet-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:from-purple-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-
-                  กำลังเข้าสู่ระบบ...
-                </>
-              ) : (
-                <>
-                  เข้าสู่ระบบ
-
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* =================================
-           * SIGN UP
-           * =============================== */}
-
-          <div className="mt-6 text-center text-xs text-slate-500">
-            ยังไม่มีบัญชี?{' '}
-
-            <Link
-              href="/signup"
-              className="font-bold text-purple-700 hover:underline"
-            >
-              สมัครสมาชิก
-            </Link>
-          </div>
-        </div>
+        </section>
       </div>
     </main>
   );

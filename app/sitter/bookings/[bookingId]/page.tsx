@@ -64,6 +64,11 @@ import {
   type CareUpdate,
 } from '@/lib/supabase/careUpdateService';
 
+import {
+  getPaymentByBookingId,
+  type Payment,
+} from '@/lib/supabase/paymentService';
+
 /* =========================================================
  * TYPES
  * ======================================================= */
@@ -112,6 +117,14 @@ export default function SitterBookingDetailPage() {
     setBooking,
   ] =
     useState<SitterBookingDetail | null>(
+      null
+    );
+
+  const [
+    payment,
+    setPayment,
+  ] =
+    useState<Payment | null>(
       null
     );
 
@@ -323,6 +336,32 @@ export default function SitterBookingDetailPage() {
           setBooking(
             detail
           );
+
+          /* ===============================================
+           * PAYMENT
+           * ============================================= */
+
+          try {
+            const paymentData =
+              await getPaymentByBookingId(
+                detail.id
+              );
+
+            setPayment(
+              paymentData
+            );
+          } catch (
+            paymentError
+          ) {
+            console.error(
+              'LOAD PAYMENT ERROR:',
+              paymentError
+            );
+
+            setPayment(
+              null
+            );
+          }
 
           /* ===============================================
            * CARE UPDATES
@@ -857,39 +896,30 @@ export default function SitterBookingDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF8FE]">
-      {/* =================================================
-       * TOAST
-       * =============================================== */}
-
+      {/* TOAST */}
       {toast && (
         <div className="fixed right-4 top-4 z-9999 w-[calc(100%-2rem)] max-w-sm">
           <div
             className={`flex items-start gap-3 rounded-2xl border bg-white p-4 shadow-xl ${
-              toast.type ===
-              'success'
+              toast.type === 'success'
                 ? 'border-emerald-200'
                 : 'border-rose-200'
             }`}
           >
-            {toast.type ===
-            'success' ? (
+            {toast.type === 'success' ? (
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
             ) : (
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
             )}
 
             <p className="flex-1 text-xs font-bold leading-5 text-slate-600">
-              {
-                toast.message
-              }
+              {toast.message}
             </p>
 
             <button
               type="button"
               onClick={() =>
-                setToast(
-                  null
-                )
+                setToast(null)
               }
             >
               <X className="h-4 w-4 text-slate-400" />
@@ -898,152 +928,203 @@ export default function SitterBookingDetailPage() {
         </div>
       )}
 
-      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
-        {/* =================================================
-         * BACK
-         * =============================================== */}
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* BACK + HEADER */}
+        <section className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Link
+              href="/sitter/bookings"
+              className="inline-flex items-center gap-1.5 text-[10px] font-black text-purple-500 transition hover:text-purple-700"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              กลับรายการจอง
+            </Link>
 
-        <Link
-          href="/sitter/bookings"
-          className="inline-flex items-center gap-2 text-sm font-bold text-purple-700 hover:text-purple-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
+            <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+              Booking Detail
+            </p>
 
-          กลับรายการจอง
-        </Link>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
+              รายละเอียดการจอง
+            </h1>
 
-        {/* =================================================
-         * HEADER
-         * =============================================== */}
+            <p className="mt-1 text-xs text-slate-400">
+              {booking.bookingCode || 'คำขอจอง'}
+            </p>
+          </div>
 
-        <section className="mt-5 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <span
+            className={`w-fit rounded-2xl px-4 py-2.5 text-[10px] font-black ${status.className}`}
+          >
+            {status.label}
+          </span>
+        </section>
+
+        {/* HERO SUMMARY */}
+        <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E7D6FF] to-[#DCC6FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-6">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/40 blur-3xl" />
+
+          <div className="relative grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
-                <Clock3 className="h-3.5 w-3.5" />
-
-                Booking Detail
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-[9px] font-black text-purple-700">
+                <PawPrint className="h-3 w-3" />
+                PetBnB Booking
               </div>
 
-              <h1 className="mt-3 text-2xl font-black text-[#2E1065]">
-                รายละเอียดการจอง
-              </h1>
+              <h2 className="mt-4 text-xl font-black text-[#32105C] sm:text-2xl">
+                {pet.name}
+              </h2>
 
-              <p className="mt-1 text-xs text-slate-400">
-                {booking.bookingCode ||
-                  'คำขอจอง'}
+              <p className="mt-1 text-xs text-purple-900/60">
+                {getCategoryLabel(pet.categoryId)}
+                {pet.breed ? ` • ${pet.breed}` : ''}
               </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <InfoPill
+                  icon={<Clock3 className="h-3.5 w-3.5" />}
+                  text={`${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}`}
+                />
+
+                <InfoPill
+                  icon={<Home className="h-3.5 w-3.5" />}
+                  text={booking.service.serviceName}
+                />
+              </div>
             </div>
 
-            <span
-              className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${status.className}`}
-            >
-              {status.label}
-            </span>
+            <div className="rounded-[24px] bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
+              <p className="text-[9px] font-bold text-slate-400">
+                ยอดรวม
+              </p>
+
+              <p className="mt-1 text-2xl font-black text-purple-700">
+                {formatMoney(booking.totalPrice)}
+              </p>
+
+              <p className="mt-1 text-[9px] text-slate-400">
+                {calculateDays(
+                  booking.startDate,
+                  booking.endDate
+                )}{' '}
+                วัน
+              </p>
+            </div>
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_350px]">
-          {/* =================================================
-           * LEFT
-           * =============================================== */}
-
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
+          {/* LEFT CONTENT */}
           <div className="space-y-5">
-            {/* =================================================
-             * OWNER
-             * =============================================== */}
+            {/* OWNER + PET */}
+            <section className="grid gap-5 md:grid-cols-2">
+              <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                  Owner
+                </p>
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black text-purple-950">
-                เจ้าของสัตว์เลี้ยง
-              </h2>
-
-              <div className="mt-4 flex items-center gap-4">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50">
-                  {booking.owner.avatarUrl ? (
-                    <img
-                      src={
-                        booking.owner.avatarUrl
-                      }
-                      alt={
-                        booking.owner.displayName
-                      }
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <UserRound className="h-7 w-7 text-purple-400" />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="font-black text-purple-950">
-                    {
-                      booking.owner.displayName
-                    }
-                  </p>
-
-                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                    <Phone className="h-3.5 w-3.5 text-purple-500" />
-
-                    {booking.owner.phone ||
-                      'ไม่ได้ระบุเบอร์ติดต่อ'}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* =================================================
-             * PET
-             * =============================================== */}
-
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <PawPrint className="h-4 w-4 text-purple-600" />
-
-                <h2 className="text-sm font-black text-purple-950">
-                  สัตว์เลี้ยงที่นำมาฝาก
+                <h2 className="mt-1 text-sm font-black text-purple-950">
+                  เจ้าของสัตว์เลี้ยง
                 </h2>
-              </div>
 
-              <div className="mt-5 flex flex-col gap-5 md:flex-row md:items-start">
-                <div className="w-full shrink-0 md:w-65">
-                  <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl border border-purple-100 bg-purple-50">
-                    {pet.photoUrl ? (
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#F3ECFF]">
+                    {booking.owner.avatarUrl ? (
                       <img
-                        src={
-                          pet.photoUrl
-                        }
-                        alt={
-                          pet.name
-                        }
-                        className="h-full w-full object-contain p-2"
+                        src={booking.owner.avatarUrl}
+                        alt={booking.owner.displayName}
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <PawPrint className="h-14 w-14 text-purple-200" />
+                      <div className="flex h-full w-full items-center justify-center">
+                        <UserRound className="h-5 w-5 text-purple-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-purple-950">
+                      {booking.owner.displayName}
+                    </p>
+
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-400">
+                      <Phone className="h-3.5 w-3.5 text-purple-500" />
+                      {booking.owner.phone ||
+                        'ไม่ได้ระบุเบอร์ติดต่อ'}
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                  Pet
+                </p>
+
+                <h2 className="mt-1 text-sm font-black text-purple-950">
+                  สัตว์เลี้ยง
+                </h2>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#F3ECFF]">
+                    {pet.photoUrl ? (
+                      <img
+                        src={pet.photoUrl}
+                        alt={pet.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <PawPrint className="h-5 w-5 text-purple-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-purple-950">
+                      {pet.name}
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-bold text-purple-500">
+                      {getCategoryLabel(
+                        pet.categoryId
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            {/* PET INFO */}
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
+              <div className="flex flex-col gap-5 md:flex-row">
+                <div className="w-full shrink-0 md:w-52">
+                  <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[24px] bg-[#F8F4FF]">
+                    {pet.photoUrl ? (
+                      <img
+                        src={pet.photoUrl}
+                        alt={pet.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <PawPrint className="h-12 w-12 text-purple-200" />
                     )}
                   </div>
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-2xl font-black text-purple-950">
-                    {pet.name}
-                  </h3>
-
-                  <p className="mt-1 text-xs font-bold text-purple-600">
-                    {getCategoryLabel(
-                      pet.categoryId
-                    )}
+                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                    Pet Information
                   </p>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <h2 className="mt-1 text-xl font-black text-purple-950">
+                    {pet.name}
+                  </h2>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <PetInfo
                       label="สายพันธุ์"
-                      value={
-                        pet.breed ||
-                        '-'
-                      }
+                      value={pet.breed || '-'}
                     />
 
                     <PetInfo
@@ -1064,8 +1145,7 @@ export default function SitterBookingDetailPage() {
                     <PetInfo
                       label="น้ำหนัก"
                       value={
-                        pet.weight !==
-                        null
+                        pet.weight !== null
                           ? `${pet.weight} กก.`
                           : '-'
                       }
@@ -1075,10 +1155,7 @@ export default function SitterBookingDetailPage() {
               </div>
             </section>
 
-            {/* =================================================
-             * FOOD
-             * =============================================== */}
-
+            {/* FOOD */}
             <DetailSection
               icon={
                 <Utensils className="h-4 w-4" />
@@ -1087,23 +1164,16 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="ข้อมูลอาหาร"
-                value={
-                  pet.foodInfo
-                }
+                value={pet.foodInfo}
               />
 
               <DetailItem
                 label="ตารางให้อาหาร"
-                value={
-                  pet.feedingSchedule
-                }
+                value={pet.feedingSchedule}
               />
             </DetailSection>
 
-            {/* =================================================
-             * HEALTH
-             * =============================================== */}
-
+            {/* HEALTH */}
             <DetailSection
               icon={
                 <HeartPulse className="h-4 w-4" />
@@ -1112,50 +1182,37 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="การแพ้"
-                value={
-                  pet.allergies
-                }
+                value={pet.allergies}
               />
 
               <DetailItem
                 label="โรคประจำตัว"
-                value={
-                  pet.medicalConditions
-                }
+                value={pet.medicalConditions}
               />
 
               <DetailItem
                 label="ยา"
-                value={
-                  pet.medication
-                }
+                value={pet.medication}
               />
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <BooleanInfo
                   label="การฉีดวัคซีน"
-                  value={
-                    pet.isVaccinated
-                  }
+                  value={pet.isVaccinated}
                   trueLabel="ฉีดวัคซีนแล้ว"
                   falseLabel="ยังไม่ได้ฉีดวัคซีน"
                 />
 
                 <BooleanInfo
                   label="การทำหมัน"
-                  value={
-                    pet.isSpayed
-                  }
+                  value={pet.isSpayed}
                   trueLabel="ทำหมันแล้ว"
                   falseLabel="ยังไม่ได้ทำหมัน"
                 />
               </div>
             </DetailSection>
 
-            {/* =================================================
-             * EXTRA CARE
-             * =============================================== */}
-
+            {/* EXTRA CARE */}
             <DetailSection
               icon={
                 <Home className="h-4 w-4" />
@@ -1164,107 +1221,81 @@ export default function SitterBookingDetailPage() {
             >
               <DetailItem
                 label="ความต้องการพิเศษ"
-                value={
-                  pet.specialNeeds
-                }
+                value={pet.specialNeeds}
               />
 
               <DetailItem
                 label="พฤติกรรม"
-                value={
-                  pet.behaviorNotes
-                }
+                value={pet.behaviorNotes}
               />
 
               <DetailItem
                 label="ผู้ติดต่อฉุกเฉิน"
-                value={
-                  pet.emergencyContact
-                }
+                value={pet.emergencyContact}
               />
             </DetailSection>
 
-            {/* =================================================
-             * OWNER NOTE
-             * =============================================== */}
-
+            {/* OWNER NOTE */}
             {booking.ownerNote && (
-              <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-                <h2 className="text-sm font-black text-purple-950">
+              <section className="rounded-[28px] bg-[#FFF9F0] p-5 shadow-[0_8px_30px_rgba(76,29,149,0.04)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-500">
+                  Owner Note
+                </p>
+
+                <h2 className="mt-1 text-sm font-black text-purple-950">
                   หมายเหตุจากเจ้าของ
                 </h2>
 
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                  {
-                    booking.ownerNote
-                  }
+                <p className="mt-3 whitespace-pre-wrap text-xs leading-6 text-slate-600">
+                  {booking.ownerNote}
                 </p>
               </section>
             )}
 
-            {/* =================================================
-             * DAILY CARE UPDATE
-             * =============================================== */}
-
-            {(
+            {/* DAILY CARE UPDATE */}
+            {(booking.status ===
+              'IN_PROGRESS' ||
               booking.status ===
-                'IN_PROGRESS' ||
-              booking.status ===
-                'COMPLETED'
-            ) && (
-              <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-                {/* =========================================
-                 * CARE HEADER
-                 * ======================================= */}
-
+                'COMPLETED') && (
+              <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50">
-                    <Camera className="h-5 w-5 text-purple-600" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                    <Camera className="h-5 w-5" />
                   </div>
 
                   <div>
-                    <h2 className="text-sm font-black text-purple-950">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                      Daily Care
+                    </p>
+
+                    <h2 className="mt-1 text-sm font-black text-purple-950">
                       อัปเดตการดูแล
                     </h2>
 
-                    <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                    <p className="mt-1 text-[10px] leading-5 text-slate-400">
                       แจ้งกิจกรรมและความเป็นอยู่ของสัตว์เลี้ยงให้เจ้าของทราบ
                     </p>
                   </div>
                 </div>
 
-                {/* =========================================
-                 * CREATE UPDATE
-                 * ======================================= */}
-
                 {booking.status ===
                   'IN_PROGRESS' && (
-                  <div className="mt-5 rounded-2xl border border-purple-100 bg-[#FAF8FE] p-4">
-                    <label className="text-xs font-black text-purple-950">
+                  <div className="mt-5 rounded-[22px] bg-[#F8F4FF] p-4">
+                    <label className="text-[10px] font-black text-purple-950">
                       อัปเดตวันนี้
                     </label>
 
                     <textarea
                       rows={4}
-                      value={
-                        updateMessage
-                      }
-                      onChange={(
-                        event
-                      ) =>
+                      value={updateMessage}
+                      onChange={(event) =>
                         setUpdateMessage(
-                          event
-                            .target
-                            .value
+                          event.target.value
                         )
                       }
                       placeholder="เช่น วันนี้น้องกินอาหารหมด เล่นปกติ และพักผ่อนเรียบร้อยค่ะ"
-                      className="mt-2 w-full resize-none rounded-xl border border-purple-100 bg-white p-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                      className="mt-2 w-full resize-none rounded-2xl border border-purple-100 bg-white p-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                     />
-
-                    {/* =====================================
-                     * IMAGE PREVIEW
-                     * =================================== */}
 
                     {selectedImages.length >
                       0 && (
@@ -1276,12 +1307,8 @@ export default function SitterBookingDetailPage() {
                           ) => (
                             <SelectedImagePreview
                               key={`${file.name}-${file.size}-${index}`}
-                              file={
-                                file
-                              }
-                              index={
-                                index
-                              }
+                              file={file}
+                              index={index}
                               onRemove={
                                 removeSelectedImage
                               }
@@ -1291,22 +1318,17 @@ export default function SitterBookingDetailPage() {
                       </div>
                     )}
 
-                    {/* =====================================
-                     * ACTION
-                     * =================================== */}
-
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <label
-                          className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition ${
+                          className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-[10px] font-black transition ${
                             selectedImages.length >=
                             4
-                              ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300'
-                              : 'cursor-pointer border-purple-200 bg-white text-purple-700 hover:bg-purple-50'
+                              ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                              : 'cursor-pointer bg-white text-purple-700 shadow-sm hover:bg-purple-50'
                           }`}
                         >
                           <ImagePlus className="h-4 w-4" />
-
                           เพิ่มรูปภาพ
 
                           {selectedImages.length >
@@ -1349,7 +1371,7 @@ export default function SitterBookingDetailPage() {
                         onClick={() =>
                           void submitCareUpdate()
                         }
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-xs font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-[10px] font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {updateLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1362,10 +1384,6 @@ export default function SitterBookingDetailPage() {
                     </div>
                   </div>
                 )}
-
-                {/* =========================================
-                 * COMPLETED MESSAGE
-                 * ======================================= */}
 
                 {booking.status ===
                   'COMPLETED' && (
@@ -1384,10 +1402,6 @@ export default function SitterBookingDetailPage() {
                   </div>
                 )}
 
-                {/* =========================================
-                 * TIMELINE
-                 * ======================================= */}
-
                 <div className="mt-5">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-purple-950">
@@ -1397,9 +1411,7 @@ export default function SitterBookingDetailPage() {
                     {careUpdates.length >
                       0 && (
                       <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[9px] font-bold text-purple-600">
-                        {
-                          careUpdates.length
-                        }{' '}
+                        {careUpdates.length}{' '}
                         อัปเดต
                       </span>
                     )}
@@ -1407,36 +1419,21 @@ export default function SitterBookingDetailPage() {
 
                   {careUpdates.length ===
                   0 ? (
-                    <div className="mt-3 rounded-2xl border border-dashed border-purple-200 bg-[#FAF8FE] px-5 py-8 text-center">
+                    <div className="mt-3 rounded-[22px] bg-[#F8F4FF] px-5 py-8 text-center">
                       <Camera className="mx-auto h-7 w-7 text-purple-200" />
 
                       <p className="mt-2 text-xs font-bold text-slate-400">
                         ยังไม่มีอัปเดตการดูแล
                       </p>
-
-                      {booking.status ===
-                        'IN_PROGRESS' && (
-                        <p className="mt-1 text-[10px] text-slate-300">
-                          เพิ่มอัปเดตแรกเพื่อแจ้งเจ้าของสัตว์เลี้ยง
-                        </p>
-                      )}
                     </div>
                   ) : (
                     <div className="mt-3 space-y-4">
                       {careUpdates.map(
-                        (
-                          update
-                        ) => (
+                        (update) => (
                           <article
-                            key={
-                              update.id
-                            }
-                            className="rounded-2xl border border-purple-100 bg-[#FAF8FE] p-4"
+                            key={update.id}
+                            className="rounded-[22px] bg-[#FAF7FE] p-4"
                           >
-                            {/* =============================
-                             * MESSAGE HEADER
-                             * =========================== */}
-
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
@@ -1458,9 +1455,7 @@ export default function SitterBookingDetailPage() {
                                 </div>
 
                                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                                  {
-                                    update.message
-                                  }
+                                  {update.message}
                                 </p>
                               </div>
 
@@ -1484,49 +1479,32 @@ export default function SitterBookingDetailPage() {
                               )}
                             </div>
 
-                            {/* =============================
-                             * UPDATE IMAGES
-                             * =========================== */}
-
-                            {update.images
-                              .length >
+                            {update.images.length >
                               0 && (
                               <div
                                 className={`mt-4 grid gap-2 ${
-                                  update
-                                    .images
-                                    .length ===
+                                  update.images.length ===
                                   1
                                     ? 'grid-cols-1'
                                     : 'grid-cols-2'
                                 }`}
                               >
                                 {update.images.map(
-                                  (
-                                    image
-                                  ) => (
+                                  (image) => (
                                     <a
-                                      key={
-                                        image.id
-                                      }
-                                      href={
-                                        image.imageUrl
-                                      }
+                                      key={image.id}
+                                      href={image.imageUrl}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className={`block overflow-hidden rounded-xl border border-purple-100 bg-white ${
-                                        update
-                                          .images
-                                          .length ===
+                                      className={`block overflow-hidden rounded-xl bg-white ${
+                                        update.images.length ===
                                         1
                                           ? 'max-h-100'
                                           : 'aspect-square'
                                       }`}
                                     >
                                       <img
-                                        src={
-                                          image.imageUrl
-                                        }
+                                        src={image.imageUrl}
                                         alt="รูปอัปเดตการดูแล"
                                         className="h-full w-full object-cover transition duration-200 hover:scale-[1.02]"
                                       />
@@ -1545,13 +1523,14 @@ export default function SitterBookingDetailPage() {
             )}
           </div>
 
-          {/* =================================================
-           * RIGHT SUMMARY
-           * =============================================== */}
-
+          {/* RIGHT SUMMARY */}
           <aside>
-            <section className="sticky top-24 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
-              <h2 className="font-black text-purple-950">
+            <section className="sticky top-6 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.06)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                Booking Summary
+              </p>
+
+              <h2 className="mt-1 text-base font-black text-purple-950">
                 สรุปการจอง
               </h2>
 
@@ -1559,7 +1538,8 @@ export default function SitterBookingDetailPage() {
                 <Summary
                   label="บริการ"
                   value={
-                    booking.service.serviceName
+                    booking.service
+                      .serviceName
                   }
                 />
 
@@ -1592,13 +1572,13 @@ export default function SitterBookingDetailPage() {
                   )}
                 />
 
-                <div className="border-t border-purple-100 pt-4">
+                <div className="rounded-[22px] bg-[#F8F4FF] p-4">
                   <div className="flex items-end justify-between gap-3">
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-[10px] font-bold text-slate-400">
                       ยอดรวม
                     </span>
 
-                    <span className="text-2xl font-black text-purple-700">
+                    <span className="text-xl font-black text-purple-700">
                       {formatMoney(
                         booking.totalPrice
                       )}
@@ -1607,24 +1587,18 @@ export default function SitterBookingDetailPage() {
                 </div>
               </div>
 
-              {/* ===========================================
-               * PENDING
-               * ========================================= */}
-
               {booking.status ===
                 'PENDING' && (
-                <div className="mt-6 grid gap-2">
+                <div className="mt-5 grid gap-2">
                   <button
                     type="button"
-                    disabled={
-                      actionLoading
-                    }
+                    disabled={actionLoading}
                     onClick={() =>
                       void updateStatus(
                         'CONFIRMED'
                       )
                     }
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-xs font-black text-white hover:bg-purple-700 disabled:opacity-50"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 text-xs font-black text-white transition hover:bg-purple-700 disabled:opacity-50"
                   >
                     {actionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1637,59 +1611,89 @@ export default function SitterBookingDetailPage() {
 
                   <button
                     type="button"
-                    disabled={
-                      actionLoading
-                    }
+                    disabled={actionLoading}
                     onClick={() =>
-                      setRejectOpen(
-                        true
-                      )
+                      setRejectOpen(true)
                     }
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white text-xs font-black text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 text-xs font-black text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
                   >
                     <XCircle className="h-4 w-4" />
-
                     ปฏิเสธการจอง
                   </button>
                 </div>
               )}
 
-              {/* ===========================================
-               * CONFIRMED
-               * ========================================= */}
-
               {booking.status ===
                 'CONFIRMED' && (
-                <button
-                  type="button"
-                  disabled={
-                    actionLoading
-                  }
-                  onClick={() =>
-                    void updateStatus(
-                      'IN_PROGRESS'
-                    )
-                  }
-                  className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-xs font-black text-white hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {actionLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlayCircle className="h-4 w-4" />
-                  )}
+                <div className="mt-5 space-y-3">
+                  <div
+                    className={`rounded-[22px] p-4 ${
+                      payment?.payment_status ===
+                      'PAID'
+                        ? 'bg-emerald-50'
+                        : 'bg-amber-50'
+                    }`}
+                  >
+                    <p className="text-[9px] font-bold text-slate-400">
+                      สถานะการชำระเงิน
+                    </p>
 
-                  เริ่มให้บริการ
-                </button>
+                    {payment?.payment_status ===
+                    'PAID' ? (
+                      <div className="mt-1 flex items-center gap-2 text-xs font-black text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        เจ้าของชำระเงินแล้ว
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs font-black text-amber-700">
+                        รอเจ้าของชำระเงิน
+                      </div>
+                    )}
+
+                    {payment?.payment_status ===
+                      'PAID' &&
+                      payment.paid_at && (
+                        <p className="mt-2 text-[9px] text-emerald-600">
+                          ชำระเมื่อ{' '}
+                          {formatPaymentDateTime(
+                            payment.paid_at
+                          )}
+                        </p>
+                      )}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={
+                      actionLoading ||
+                      payment?.payment_status !==
+                        'PAID'
+                    }
+                    onClick={() =>
+                      void updateStatus(
+                        'IN_PROGRESS'
+                      )
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 text-xs font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PlayCircle className="h-4 w-4" />
+                    )}
+
+                    {payment?.payment_status ===
+                    'PAID'
+                      ? 'เริ่มให้บริการ'
+                      : 'รอการชำระเงิน'}
+                  </button>
+                </div>
               )}
-
-              {/* ===========================================
-               * IN PROGRESS
-               * ========================================= */}
 
               {booking.status ===
                 'IN_PROGRESS' && (
-                <div className="mt-6">
-                  <div className="mb-3 rounded-xl bg-purple-50 px-3 py-2.5">
+                <div className="mt-5">
+                  <div className="mb-3 rounded-[22px] bg-purple-50 px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500" />
 
@@ -1699,7 +1703,7 @@ export default function SitterBookingDetailPage() {
                     </div>
 
                     <p className="mt-1 text-[9px] leading-4 text-purple-500">
-                      สามารถส่งอัปเดตการดูแลให้เจ้าของได้ระหว่างการรับฝาก
+                      ส่งอัปเดตการดูแลให้เจ้าของได้ระหว่างการรับฝาก
                     </p>
                   </div>
 
@@ -1714,7 +1718,7 @@ export default function SitterBookingDetailPage() {
                         'COMPLETED'
                       )
                     }
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
                   >
                     {actionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1727,13 +1731,9 @@ export default function SitterBookingDetailPage() {
                 </div>
               )}
 
-              {/* ===========================================
-               * COMPLETED
-               * ========================================= */}
-
               {booking.status ===
                 'COMPLETED' && (
-                <div className="mt-6 rounded-xl bg-emerald-50 px-4 py-3">
+                <div className="mt-5 rounded-[22px] bg-emerald-50 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
 
@@ -1741,9 +1741,6 @@ export default function SitterBookingDetailPage() {
                       ให้บริการเสร็จสิ้นแล้ว
                     </p>
                   </div>
-                  <p className="mt-1.5 text-[9px] text-emerald-600">
-                    การให้บริการรายการนี้เสร็จสิ้นแล้ว
-                  </p>
                 </div>
               )}
             </section>
@@ -1751,14 +1748,15 @@ export default function SitterBookingDetailPage() {
         </div>
       </div>
 
-      {/* =================================================
-       * REJECT MODAL
-       * =============================================== */}
-
+      {/* REJECT MODAL */}
       {rejectOpen && (
         <div className="fixed inset-0 z-9998 flex items-center justify-center bg-black/30 p-4">
           <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-black text-purple-950">
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-rose-400">
+              Reject Booking
+            </p>
+
+            <h2 className="mt-1 text-lg font-black text-purple-950">
               ปฏิเสธการจอง
             </h2>
 
@@ -1768,15 +1766,10 @@ export default function SitterBookingDetailPage() {
 
             <textarea
               rows={5}
-              value={
-                rejectionReason
-              }
-              onChange={(
-                event
-              ) =>
+              value={rejectionReason}
+              onChange={(event) =>
                 setRejectionReason(
-                  event.target
-                    .value
+                  event.target.value
                 )
               }
               placeholder="ระบุเหตุผลที่ปฏิเสธ..."
@@ -1786,32 +1779,23 @@ export default function SitterBookingDetailPage() {
             <div className="mt-5 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                disabled={
-                  actionLoading
-                }
+                disabled={actionLoading}
                 onClick={() => {
-                  setRejectOpen(
-                    false
-                  );
-
-                  setRejectionReason(
-                    ''
-                  );
+                  setRejectOpen(false);
+                  setRejectionReason('');
                 }}
-                className="h-11 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                className="h-11 rounded-2xl bg-slate-100 text-xs font-bold text-slate-600"
               >
                 ยกเลิก
               </button>
 
               <button
                 type="button"
-                disabled={
-                  actionLoading
-                }
+                disabled={actionLoading}
                 onClick={() =>
                   void confirmReject()
                 }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 text-xs font-black text-white disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-rose-600 text-xs font-black text-white disabled:opacity-50"
               >
                 {actionLoading && (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1824,6 +1808,22 @@ export default function SitterBookingDetailPage() {
         </div>
       )}
     </main>
+  );
+
+}
+
+function InfoPill({
+  icon,
+  text,
+}: {
+  icon: ReactNode;
+  text: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-2 text-[9px] font-black text-purple-900/70">
+      {icon}
+      {text}
+    </span>
   );
 }
 
@@ -1912,7 +1912,7 @@ function DetailSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+    <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
       <div className="flex items-center gap-2 font-black text-purple-950">
         <span className="text-purple-600">
           {icon}
@@ -1944,7 +1944,7 @@ function DetailItem({
     | null;
 }) {
   return (
-    <div className="rounded-2xl bg-[#FAF8FE] p-4">
+    <div className="rounded-2xl bg-[#FAF7FE] p-4">
       <p className="text-[10px] font-bold text-slate-400">
         {label}
       </p>
@@ -1999,7 +1999,7 @@ function BooleanInfo({
   falseLabel: string;
 }) {
   return (
-    <div className="rounded-2xl bg-[#FAF8FE] p-4">
+    <div className="rounded-2xl bg-[#FAF7FE] p-4">
       <p className="text-[10px] font-bold text-slate-400">
         {label}
       </p>
@@ -2049,6 +2049,37 @@ function Summary({
       </span>
     </div>
   );
+}
+
+/* =========================================================
+ * FORMAT PAYMENT DATE TIME
+ * ======================================================= */
+
+function formatPaymentDateTime(
+  value: string
+) {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    'th-TH',
+    {
+      dateStyle:
+        'medium',
+      timeStyle:
+        'short',
+      timeZone:
+        'Asia/Bangkok',
+    }
+  ).format(date);
 }
 
 /* =========================================================

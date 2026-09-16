@@ -49,6 +49,28 @@ import {
   type Review,
 } from '@/lib/supabase/reviewService';
 
+import {
+  getPaymentByBookingId,
+  type Payment,
+} from '@/lib/supabase/paymentService';
+
+import { supabase } from '@/lib/supabase/client';
+
+/* =========================================================
+ * SITTER INFO
+ * ======================================================= */
+
+interface SitterInfo {
+  id: string;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  specialty: string | null;
+  experienceYears: number | null;
+  isVerified: boolean;
+}
+
 /* =========================================================
  * OWNER BOOKING DETAIL PAGE
  * ======================================================= */
@@ -82,6 +104,22 @@ export default function OwnerBookingDetailPage() {
     setBooking,
   ] =
     useState<Booking | null>(
+      null
+    );
+
+  const [
+    sitter,
+    setSitter,
+  ] =
+    useState<SitterInfo | null>(
+      null
+    );
+
+  const [
+    payment,
+    setPayment,
+  ] =
+    useState<Payment | null>(
       null
     );
 
@@ -288,6 +326,161 @@ export default function OwnerBookingDetailPage() {
         setBooking(
           detail
         );
+
+        /* -------------------------------------------------
+         * LOAD SITTER
+         * ----------------------------------------------- */
+
+        try {
+          const {
+            data: sitterData,
+            error: sitterError,
+          } = await supabase
+            .from('sitter_profiles')
+            .select(`
+              id,
+              user_id,
+              specialty,
+              experience_years,
+              is_verified,
+              profiles (
+                display_name,
+                first_name,
+                last_name,
+                avatar_url,
+                bio
+              )
+            `)
+            .eq(
+              'id',
+              detail.sitterId
+            )
+            .maybeSingle();
+
+          if (sitterError) {
+            throw sitterError;
+          }
+
+          if (sitterData) {
+            const rawProfile =
+              Array.isArray(
+                sitterData.profiles
+              )
+                ? sitterData.profiles[0]
+                : sitterData.profiles;
+
+            const profileData =
+              rawProfile as {
+                display_name:
+                  | string
+                  | null;
+                first_name:
+                  | string
+                  | null;
+                last_name:
+                  | string
+                  | null;
+                avatar_url:
+                  | string
+                  | null;
+                bio:
+                  | string
+                  | null;
+              } | null;
+
+            const fullName = [
+              profileData
+                ?.first_name,
+              profileData
+                ?.last_name,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .trim();
+
+            setSitter({
+              id:
+                sitterData.id,
+
+              userId:
+                sitterData.user_id,
+
+              displayName:
+                profileData
+                  ?.display_name
+                  ?.trim() ||
+                fullName ||
+                'ผู้รับฝากสัตว์เลี้ยง',
+
+              avatarUrl:
+                profileData
+                  ?.avatar_url ??
+                null,
+
+              bio:
+                profileData
+                  ?.bio ??
+                null,
+
+              specialty:
+                sitterData
+                  .specialty ??
+                null,
+
+              experienceYears:
+                sitterData
+                  .experience_years ??
+                null,
+
+              isVerified:
+                Boolean(
+                  sitterData
+                    .is_verified
+                ),
+            });
+          } else {
+            setSitter(
+              null
+            );
+          }
+        } catch (
+          sitterLoadError
+        ) {
+          console.error(
+            'LOAD SITTER INFO ERROR:',
+            sitterLoadError
+          );
+
+          setSitter(
+            null
+          );
+        }
+
+        /* -------------------------------------------------
+         * LOAD PAYMENT
+         * ----------------------------------------------- */
+
+        try {
+          const paymentData =
+            await getPaymentByBookingId(
+              detail.id
+            );
+
+          setPayment(
+            paymentData
+          );
+        } catch (
+          paymentLoadError
+        ) {
+          console.error(
+            'LOAD PAYMENT ERROR:',
+            paymentLoadError
+          );
+
+          setPayment(
+            null
+          );
+        }
 
         /* -------------------------------------------------
          * LOAD DAILY CARE
@@ -727,6 +920,92 @@ export default function OwnerBookingDetailPage() {
                 )}`}
               />
             </div>
+          </section>
+
+          {/* ===============================================
+           * SITTER INFORMATION
+           * ============================================= */}
+
+          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5">
+              <h2 className="font-black text-purple-950">
+                ข้อมูลผู้รับฝาก
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-400">
+                ผู้รับฝากที่คุณเลือกสำหรับรายการจองนี้
+              </p>
+            </div>
+
+            {sitter ? (
+              <div className="flex items-start gap-4">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-purple-50">
+                  {sitter.avatarUrl ? (
+                    <img
+                      src={
+                        sitter.avatarUrl
+                      }
+                      alt={
+                        sitter.displayName
+                      }
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-purple-400">
+                      <PawPrint className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-sm font-black text-purple-950">
+                      {
+                        sitter.displayName
+                      }
+                    </div>
+
+                    {sitter.isVerified && (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-black text-emerald-600">
+                        ยืนยันตัวตนแล้ว
+                      </span>
+                    )}
+                  </div>
+
+                  {sitter.specialty && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      ความเชี่ยวชาญ:{' '}
+                      {
+                        sitter.specialty
+                      }
+                    </p>
+                  )}
+
+                  {sitter.experienceYears !==
+                    null && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      ประสบการณ์{' '}
+                      {
+                        sitter.experienceYears
+                      }{' '}
+                      ปี
+                    </p>
+                  )}
+
+                  {sitter.bio && (
+                    <p className="mt-3 whitespace-pre-wrap text-xs leading-5 text-slate-500">
+                      {
+                        sitter.bio
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-[#FAF7FE] p-4 text-xs text-slate-400">
+                ไม่สามารถโหลดข้อมูลผู้รับฝากได้
+              </div>
+            )}
           </section>
 
           {/* ===============================================
@@ -1323,6 +1602,99 @@ export default function OwnerBookingDetailPage() {
                 }
               />
             </div>
+
+            {/* PAYMENT STATUS */}
+
+            <div className="mt-5 rounded-2xl border border-purple-100 bg-[#FAF7FE] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400">
+                    สถานะการชำระเงิน
+                  </div>
+
+                  {payment?.payment_status ===
+                  'PAID' ? (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-black text-emerald-600">
+                      <CheckCircle2 className="h-4 w-4" />
+                      ชำระเงินแล้ว
+                    </div>
+                  ) : payment ? (
+                    <div className="mt-1 text-xs font-black text-amber-600">
+                      รอการชำระเงิน
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-xs font-black text-slate-500">
+                      ยังไม่มีรายการชำระเงิน
+                    </div>
+                  )}
+                </div>
+
+                {payment?.payment_status ===
+                  'PAID' && (
+                  <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[9px] font-black text-emerald-700">
+                    PAID
+                  </div>
+                )}
+              </div>
+
+              {payment?.payment_status ===
+                'PAID' &&
+                payment.paid_at && (
+                  <div className="mt-2 text-[10px] text-slate-400">
+                    ชำระเมื่อ{' '}
+                    {formatDateTime(
+                      payment.paid_at
+                    )}
+                  </div>
+                )}
+
+              {payment?.transaction_ref && (
+                <div className="mt-1 break-all text-[10px] text-slate-400">
+                  เลขอ้างอิง:{' '}
+                  {
+                    payment.transaction_ref
+                  }
+                </div>
+              )}
+            </div>
+
+            {/* PAYMENT ACTION */}
+
+            {booking.status ===
+              'CONFIRMED' &&
+              payment?.payment_status !==
+                'PAID' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/owner/bookings/${booking.id}/payment`
+                    )
+                  }
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-sm font-black text-white transition hover:bg-purple-700"
+                >
+                  <ReceiptText className="h-4 w-4" />
+
+                  ชำระเงิน
+                </button>
+              )}
+
+            {payment?.payment_status ===
+              'PAID' && (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/owner/bookings/${booking.id}/payment`
+                  )
+                }
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50"
+              >
+                <ReceiptText className="h-4 w-4" />
+
+                ดูรายละเอียดการชำระเงิน
+              </button>
+            )}
 
             {/* COMPLETED */}
 

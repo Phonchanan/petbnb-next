@@ -538,33 +538,48 @@ export const BookingService = {
       );
     }
 
+    /*
+     * Owner ยกเลิกได้เฉพาะตอนที่
+     * Sitter ยังไม่ตอบรับเท่านั้น
+     */
     if (
-      booking.status !== 'PENDING' &&
-      booking.status !== 'CONFIRMED'
+      booking.status !== 'PENDING'
     ) {
       throw new Error(
-        'ไม่สามารถยกเลิกการจองในสถานะนี้ได้'
+        'ไม่สามารถยกเลิกการจองได้ เนื่องจากผู้รับฝากยืนยันการจองแล้ว'
       );
     }
 
-    const { error } =
-      await supabase
-        .from('bookings')
-        .update({
-          status:
-            'CANCELLED',
+    const {
+      data: updatedBooking,
+      error,
+    } = await supabase
+      .from('bookings')
+      .update({
+        status:
+          'CANCELLED',
 
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          'id',
-          bookingId
-        )
-        .eq(
-          'owner_id',
-          session.user.id
-        );
+        updated_at:
+          new Date().toISOString(),
+      })
+      .eq(
+        'id',
+        bookingId
+      )
+      .eq(
+        'owner_id',
+        session.user.id
+      )
+      /*
+       * กันกรณี Sitter กดยืนยันพร้อมกับ
+       * Owner กดยกเลิก
+       */
+      .eq(
+        'status',
+        'PENDING'
+      )
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       console.error(
@@ -575,6 +590,12 @@ export const BookingService = {
       throw new Error(
         error.message ||
           'ไม่สามารถยกเลิกการจองได้'
+      );
+    }
+
+    if (!updatedBooking) {
+      throw new Error(
+        'ไม่สามารถยกเลิกได้ เนื่องจากสถานะการจองมีการเปลี่ยนแปลงแล้ว'
       );
     }
   },
@@ -696,12 +717,62 @@ export const BookingService = {
     }
 
     if (
-      input.status === 'IN_PROGRESS' &&
-      booking.status !== 'CONFIRMED'
+      input.status === 'IN_PROGRESS'
     ) {
-      throw new Error(
-        'เริ่มให้บริการได้เฉพาะการจองที่ยืนยันแล้ว'
-      );
+      if (
+        booking.status !== 'CONFIRMED'
+      ) {
+        throw new Error(
+          'เริ่มให้บริการได้เฉพาะการจองที่ยืนยันแล้ว'
+        );
+      }
+
+      /*
+       * ก่อนเริ่มให้บริการ
+       * ต้องมี Payment ที่ชำระแล้ว
+       */
+      const {
+        data: payment,
+        error: paymentError,
+      } = await supabase
+        .from('payments')
+        .select(`
+          id,
+          payment_status
+        `)
+        .eq(
+          'booking_id',
+          input.bookingId
+        )
+        .eq(
+          'payment_status',
+          'PAID'
+        )
+        .order(
+          'created_at',
+          {
+            ascending: false,
+          }
+        )
+        .limit(1)
+        .maybeSingle();
+
+      if (paymentError) {
+        console.error(
+          'CHECK PAYMENT BEFORE START ERROR:',
+          paymentError
+        );
+
+        throw new Error(
+          'ไม่สามารถตรวจสอบสถานะการชำระเงินได้'
+        );
+      }
+
+      if (!payment) {
+        throw new Error(
+          'ยังไม่สามารถเริ่มให้บริการได้ เนื่องจากเจ้าของยังไม่ได้ชำระเงิน'
+        );
+      }
     }
 
     if (

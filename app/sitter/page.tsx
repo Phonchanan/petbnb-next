@@ -6,12 +6,15 @@ import {
 } from 'react';
 
 import {
+  ArrowRight,
+  Bell,
   CalendarDays,
   CheckCircle2,
   Clock3,
   Loader2,
   MessageSquare,
   PawPrint,
+  ShieldCheck,
   Star,
   Wallet,
 } from 'lucide-react';
@@ -60,6 +63,35 @@ const initialRatingSummary: SitterRatingSummary = {
   reviewCount: 0,
 };
 
+
+interface SitterEarningsSummary {
+  grossAmount: number;
+  commissionFee: number;
+  netAmount: number;
+  paidCount: number;
+}
+
+const initialEarnings: SitterEarningsSummary = {
+  grossAmount: 0,
+  commissionFee: 0,
+  netAmount: 0,
+  paidCount: 0,
+};
+
+
+interface CurrentJob {
+  id: string;
+  bookingCode: string | null;
+  ownerName: string;
+  petName: string;
+  petPhotoUrl: string | null;
+  startDate: string;
+  endDate: string;
+  status: string;
+  totalPrice: number;
+  paymentStatus: string | null;
+}
+
 /* =========================================================
  * PAGE
  * ======================================================= */
@@ -99,6 +131,18 @@ export default function SitterDashboardPage() {
     reviews,
     setReviews,
   ] = useState<Review[]>([]);
+
+  const [
+    earnings,
+    setEarnings,
+  ] = useState<SitterEarningsSummary>(
+    initialEarnings
+  );
+
+  const [
+    currentJobs,
+    setCurrentJobs,
+  ] = useState<CurrentJob[]>([]);
 
   const [
     loading,
@@ -396,6 +440,8 @@ export default function SitterDashboardPage() {
           dashboardStats,
           reviewSummary,
           reviewItems,
+          earningsSummary,
+          currentJobItems,
         ] = await Promise.all([
           SitterDashboardService.getStats(
             sitterData.id
@@ -406,6 +452,14 @@ export default function SitterDashboardPage() {
           ),
 
           ReviewService.getBySitterId(
+            sitterData.id
+          ),
+
+          getSitterEarnings(
+            sitterData.id
+          ),
+
+          getCurrentJobs(
             sitterData.id
           ),
         ]);
@@ -420,6 +474,14 @@ export default function SitterDashboardPage() {
 
         setReviews(
           reviewItems
+        );
+
+        setEarnings(
+          earningsSummary
+        );
+
+        setCurrentJobs(
+          currentJobItems
         );
       } catch (err) {
         console.error(
@@ -579,124 +641,75 @@ export default function SitterDashboardPage() {
   const latestReviews =
     reviews.slice(
       0,
-      2
+      1
     );
+
+  const primaryJob =
+    currentJobs.find(
+      (job) =>
+        job.status ===
+        'IN_PROGRESS'
+    ) ??
+    currentJobs.find(
+      (job) =>
+        job.status ===
+        'CONFIRMED'
+    ) ??
+    currentJobs.find(
+      (job) =>
+        job.status ===
+        'PENDING'
+    ) ??
+    currentJobs[0] ??
+    null;
 
   /* =======================================================
    * UI
    * ===================================================== */
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
 
       {/* =================================================
-          WELCOME
+          DASHBOARD HEADER
       ================================================= */}
 
-      <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-100/60 blur-3xl" />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+            PetBnB Sitter
+          </p>
 
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-[10px] font-bold text-purple-700 sm:text-[11px]">
-              <PawPrint className="h-3.5 w-3.5" />
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
+            Dashboard
+          </h1>
+        </div>
 
-              Sitter Dashboard
-            </div>
-
-            <h1 className="mt-3 wrap-break-word text-xl font-black text-purple-950 sm:text-2xl">
-              สวัสดี {displayName} 👋
-            </h1>
-
-            <p className="mt-1 max-w-xl text-xs leading-5 text-slate-400 sm:text-sm">
-              ภาพรวมการรับฝากสัตว์เลี้ยงของคุณ
-            </p>
+        <div className="flex items-center gap-2">
+          <div className="hidden rounded-2xl bg-white px-4 py-2.5 text-xs font-bold text-slate-400 shadow-sm ring-1 ring-purple-100 sm:block">
+            {ratingSummary.reviewCount > 0
+              ? `★ ${ratingSummary.averageRating.toFixed(1)} · ${ratingSummary.reviewCount} รีวิว`
+              : 'ยังไม่มีรีวิว'}
           </div>
 
-          {sitterProfile && (
-            <div className="w-full sm:w-auto">
-              <div className="flex flex-col items-start gap-2 sm:items-end">
-                <p className="text-[10px] font-bold text-slate-400">
-                  สถานะการรับฝาก
-                </p>
+          <button
+            type="button"
+            className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-purple-500 shadow-sm ring-1 ring-purple-100"
+            aria-label="การแจ้งเตือน"
+          >
+            <Bell className="h-4 w-4" />
 
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={sitterProfile.isAvailable}
-                  aria-label={
-                    sitterProfile.isAvailable
-                      ? 'ปิดรับฝาก'
-                      : 'เปิดรับฝาก'
-                  }
-                  disabled={updatingAvailability}
-                  onClick={() =>
-                    void handleToggleAvailability()
-                  }
-                  className={`group inline-flex min-w-[164px] items-center justify-between gap-3 rounded-full border px-2 py-2 pr-3 shadow-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60 ${
-                    sitterProfile.isAvailable
-                      ? 'border-emerald-200 bg-white hover:border-emerald-300'
-                      : 'border-slate-200 bg-white hover:border-purple-200'
-                  }`}
-                >
-                  <span
-                    className={`relative h-8 w-14 shrink-0 rounded-full transition-all duration-200 ${
-                      sitterProfile.isAvailable
-                        ? 'bg-emerald-500'
-                        : 'bg-slate-200'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm transition-all duration-200 ${
-                        sitterProfile.isAvailable
-                          ? 'left-7'
-                          : 'left-1'
-                      }`}
-                    >
-                      {updatingAvailability && (
-                        <Loader2 className="h-3 w-3 animate-spin text-purple-500" />
-                      )}
-                    </span>
-                  </span>
-
-                  <span className="min-w-0 text-left">
-                    <span
-                      className={`block text-[11px] font-black ${
-                        sitterProfile.isAvailable
-                          ? 'text-emerald-700'
-                          : 'text-slate-600'
-                      }`}
-                    >
-                      {sitterProfile.isAvailable
-                        ? 'เปิดรับฝาก'
-                        : 'ปิดรับฝาก'}
-                    </span>
-
-                    <span className="mt-0.5 block text-[9px] text-slate-400">
-                      {sitterProfile.isAvailable
-                        ? 'พร้อมรับคำขอ'
-                        : 'พักรับงานชั่วคราว'}
-                    </span>
-                  </span>
-                </button>
-
-                {availabilityMessage && (
-                  <p className="pr-1 text-[9px] font-bold text-emerald-600">
-                    {availabilityMessage}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+            {stats.pendingCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[8px] font-black text-white">
+                {stats.pendingCount}
+              </span>
+            )}
+          </button>
         </div>
       </section>
 
-      {/* =================================================
-          ERROR
-      ================================================= */}
-
       {error && (
-        <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="text-xs font-bold leading-5 text-amber-800">
             {error}
           </p>
@@ -706,242 +719,320 @@ export default function SitterDashboardPage() {
       {sitterProfile && (
         <>
           {/* =================================================
-              OVERVIEW
+              HERO
           ================================================= */}
 
-          <section className="mt-5">
-            <h2 className="mb-3 text-sm font-black text-purple-950">
-              ภาพรวม
-            </h2>
+          <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-7">
+            <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/40 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 right-20 h-24 w-24 rounded-full bg-purple-300/20 blur-2xl" />
 
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+            <div className="relative">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/75 px-3 py-1 text-[9px] font-black text-purple-700">
+                    <PawPrint className="h-3 w-3" />
+                    Sitter Dashboard
+                  </span>
 
-              <OverviewCard
-                icon={
-                  <Clock3 className="h-3.5 w-3.5" />
-                }
-                label="คำขอใหม่"
-                value={String(
-                  stats.pendingCount
+                  {sitterProfile.isVerified && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50/90 px-3 py-1 text-[9px] font-black text-emerald-700">
+                      <ShieldCheck className="h-3 w-3" />
+                      ยืนยันตัวตนแล้ว
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="mt-4 text-2xl font-black leading-tight text-[#32105C] sm:text-[30px]">
+                  สวัสดี {displayName} 👋
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-xs leading-5 text-purple-900/60 sm:text-sm">
+                  วันนี้คุณมี {stats.pendingCount + stats.confirmedCount + stats.inProgressCount} งานที่เกี่ยวข้อง
+                  จัดการงานรับฝากและติดตามสถานะได้จากตรงนี้
+                </p>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        '/sitter/bookings'
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#7C3AED] px-4 py-2.5 text-[11px] font-black text-white shadow-sm transition hover:bg-purple-700"
+                  >
+                    ดูงานรับฝาก
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sitterProfile.isAvailable}
+                    aria-label={
+                      sitterProfile.isAvailable
+                        ? 'ปิดรับฝาก'
+                        : 'เปิดรับฝาก'
+                    }
+                    disabled={updatingAvailability}
+                    onClick={() =>
+                      void handleToggleAvailability()
+                    }
+                    className="inline-flex items-center gap-3 rounded-full bg-white/80 px-3 py-2 shadow-[0_6px_18px_rgba(76,29,149,0.08)] backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        sitterProfile.isAvailable
+                          ? 'bg-emerald-500'
+                          : 'bg-slate-300'
+                      }`}
+                    />
+
+                    <span
+                      className={`text-[11px] font-black ${
+                        sitterProfile.isAvailable
+                          ? 'text-emerald-700'
+                          : 'text-slate-600'
+                      }`}
+                    >
+                      {sitterProfile.isAvailable
+                        ? 'พร้อมรับงาน'
+                        : 'พักรับงาน'}
+                    </span>
+
+                    <span
+                      className={`relative h-6 w-10 rounded-full transition ${
+                        sitterProfile.isAvailable
+                          ? 'bg-emerald-500'
+                          : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm transition ${
+                          sitterProfile.isAvailable
+                            ? 'left-5'
+                            : 'left-1'
+                        }`}
+                      >
+                        {updatingAvailability && (
+                          <Loader2 className="h-2.5 w-2.5 animate-spin text-purple-500" />
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+
+                {availabilityMessage && (
+                  <p className="mt-2 text-[9px] font-bold text-emerald-700">
+                    {availabilityMessage}
+                  </p>
                 )}
-                subtext="รอการตอบรับ"
-              />
-
-              <OverviewCard
-                icon={
-                  <PawPrint className="h-3.5 w-3.5" />
-                }
-                label="กำลังดูแล"
-                value={String(
-                  stats.inProgressCount
-                )}
-                subtext="รายการ"
-              />
-
-              <OverviewCard
-                icon={
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                }
-                label="เสร็จสิ้น"
-                value={String(
-                  stats.completedCount
-                )}
-                subtext="รายการ"
-              />
-
-              <OverviewCard
-                icon={
-                  <Wallet className="h-3.5 w-3.5" />
-                }
-                label="รายได้รวม"
-                value={`฿${stats.totalRevenue.toLocaleString(
-                  'th-TH'
-                )}`}
-                subtext="จากงานที่เสร็จสิ้น"
-              />
+              </div>
 
             </div>
           </section>
 
           {/* =================================================
-              WORK + REVIEW
+              MINI CARDS
           ================================================= */}
 
-          <section className="mt-5 grid items-stretch gap-4 lg:grid-cols-2 lg:gap-5">
+          <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <PastelStatCard
+              label="คำขอใหม่"
+              value={String(stats.pendingCount)}
+              subtext="รอการตอบรับ"
+              icon={<Clock3 className="h-4 w-4" />}
+              tone="yellow"
+            />
 
-            {/* ===============================================
-                MY WORK
-            =============================================== */}
+            <PastelStatCard
+              label="ยืนยันแล้ว"
+              value={String(stats.confirmedCount)}
+              subtext="รอเริ่มบริการ"
+              icon={<CalendarDays className="h-4 w-4" />}
+              tone="purple"
+            />
 
-            <article className="flex h-full min-w-0 flex-col rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <PastelStatCard
+              label="กำลังดูแล"
+              value={String(stats.inProgressCount)}
+              subtext="งานที่ดำเนินอยู่"
+              icon={<PawPrint className="h-4 w-4" />}
+              tone="green"
+            />
 
+            <PastelStatCard
+              label="รายได้สุทธิ"
+              value={formatMoney(earnings.netAmount)}
+              subtext={`${earnings.paidCount} งานที่ชำระแล้ว`}
+              icon={<Wallet className="h-4 w-4" />}
+              tone="pink"
+            />
+          </section>
+
+          {/* =================================================
+              BENTO GRID
+          ================================================= */}
+
+          <section className="mt-5 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+            {/* LATEST JOB */}
+
+            <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.06)] sm:p-6">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-base font-black text-purple-950">
-                    งานของฉัน
-                  </h2>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                    Current Job
+                  </p>
 
-                  <p className="mt-1 text-xs leading-5 text-slate-400">
-                    สถานะงานรับฝากในปัจจุบัน
+                  <h2 className="mt-1 text-base font-black text-purple-950">
+                    งานล่าสุด
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      '/sitter/bookings'
+                    )
+                  }
+                  className="inline-flex items-center gap-1 text-[10px] font-black text-purple-600"
+                >
+                  ดูทั้งหมด
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {primaryJob ? (
+                <DashboardJobCard
+                  job={primaryJob}
+                  onOpen={() =>
+                    router.push(
+                      `/sitter/bookings/${primaryJob.id}`
+                    )
+                  }
+                />
+              ) : (
+                <div className="mt-5 flex min-h-48 flex-col items-center justify-center rounded-[24px] bg-[#F8F4FF] px-5 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-purple-300 shadow-sm">
+                    <PawPrint className="h-6 w-6" />
+                  </div>
+
+                  <p className="mt-3 text-sm font-black text-purple-950">
+                    ยังไม่มีงานที่ต้องจัดการ
+                  </p>
+
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    งานใหม่จะปรากฏในส่วนนี้
                   </p>
                 </div>
-
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                  <CalendarDays className="h-4 w-4" />
-                </div>
-              </div>
-
-              <div className="mt-4 flex-1 rounded-2xl bg-[#FAF7FE] p-2">
-
-                <BookingRow
-                  label="รอการตอบรับ"
-                  value={
-                    stats.pendingCount
-                  }
-                />
-
-                <BookingRow
-                  label="ยืนยันแล้ว"
-                  value={
-                    stats.confirmedCount
-                  }
-                />
-
-                <BookingRow
-                  label="กำลังดูแล"
-                  value={
-                    stats.inProgressCount
-                  }
-                />
-
-                <BookingRow
-                  label="เสร็จสิ้นแล้ว"
-                  value={
-                    stats.completedCount
-                  }
-                />
-
-              </div>
+              )}
             </article>
 
-            {/* ===============================================
-                REVIEWS
-            =============================================== */}
+            {/* RIGHT STACK */}
 
-            <article className="flex h-full min-w-0 flex-col rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-
-              <div className="flex items-start justify-between gap-3">
-
-                <div className="min-w-0">
-                  <h2 className="text-base font-black text-purple-950">
-                    รีวิวจากเจ้าของสัตว์
-                  </h2>
-
-                  <p className="mt-1 text-xs leading-5 text-slate-400">
-                    คะแนนและความคิดเห็นจาก Owner
-                  </p>
-                </div>
-
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
-                  <MessageSquare className="h-4 w-4" />
-                </div>
-
-              </div>
-
-              {/* RATING SUMMARY */}
-
-              <div className="mt-4 rounded-2xl bg-[#FAF7FE] p-3.5 sm:p-4">
-
-                {ratingSummary.reviewCount >
-                0 ? (
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                      <Star className="h-5 w-5 fill-current text-amber-400" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex items-end gap-1.5">
-                        <span className="text-xl font-black text-purple-950">
-                          {ratingSummary.averageRating.toFixed(
-                            1
-                          )}
-                        </span>
-
-                        <span className="mb-0.5 text-[10px] font-bold text-slate-400">
-                          / 5
-                        </span>
-                      </div>
-
-                      <p className="mt-0.5 text-[10px] text-slate-400">
-                        จาก{' '}
-                        {
-                          ratingSummary.reviewCount
-                        }{' '}
-                        รีวิว
-                      </p>
-                    </div>
-
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                      <Star className="h-5 w-5 text-slate-200" />
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-black text-purple-950">
-                        ยังไม่มีคะแนน
-                      </p>
-
-                      <p className="mt-0.5 text-[10px] text-slate-400">
-                        คะแนนจะแสดงเมื่อ Owner รีวิว
-                      </p>
-                    </div>
-
-                  </div>
-                )}
-
-              </div>
-
-              {/* LATEST REVIEWS */}
-
-              <div className="mt-3 flex-1">
-
-                {latestReviews.length >
-                0 ? (
-                  <div className="space-y-2.5">
-
-                    {latestReviews.map(
-                      (review) => (
-                        <ReviewCard
-                          key={
-                            review.id
-                          }
-                          review={
-                            review
-                          }
-                        />
-                      )
-                    )}
-
-                  </div>
-                ) : (
-                  <div className="flex min-h-24 h-full flex-col items-center justify-center rounded-2xl border border-dashed border-purple-100 bg-purple-50/20 px-4 text-center">
-
-                    <Star className="h-4.5 w-4.5 text-purple-200" />
-
-                    <p className="mt-2 text-[11px] font-bold text-slate-400">
-                      ยังไม่มีรีวิว
+            <div className="grid gap-4">
+              <article className="rounded-[28px] bg-[#2E1065] p-5 text-white shadow-[0_8px_30px_rgba(46,16,101,0.12)] sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-200">
+                      Earnings
                     </p>
 
+                    <h2 className="mt-1 text-sm font-black">
+                      รายได้ของฉัน
+                    </h2>
                   </div>
-                )}
 
-              </div>
-            </article>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                </div>
 
+                <p className="mt-5 text-3xl font-black tracking-tight">
+                  {formatMoney(
+                    earnings.netAmount
+                  )}
+                </p>
+
+                <p className="mt-1 text-[10px] text-purple-200">
+                  รายได้สุทธิหลังหักค่าธรรมเนียม 10%
+                </p>
+
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <p className="text-[8px] font-bold text-purple-200">
+                      Owner ชำระ
+                    </p>
+
+                    <p className="mt-1 text-xs font-black">
+                      {formatMoney(
+                        earnings.grossAmount
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <p className="text-[8px] font-bold text-purple-200">
+                      ค่าธรรมเนียม
+                    </p>
+
+                    <p className="mt-1 text-xs font-black">
+                      {formatMoney(
+                        earnings.commissionFee
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-[28px] bg-[#FFF9F0] p-5 shadow-[0_8px_30px_rgba(76,29,149,0.04)] sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-500">
+                      Reviews
+                    </p>
+
+                    <h2 className="mt-1 text-sm font-black text-purple-950">
+                      รีวิวล่าสุด
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Star className="h-5 w-5 fill-current text-amber-400" />
+
+                    <span className="text-xl font-black text-purple-950">
+                      {ratingSummary.reviewCount > 0
+                        ? ratingSummary.averageRating.toFixed(
+                            1
+                          )
+                        : '0.0'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  {latestReviews.length > 0 ? (
+                    latestReviews.map(
+                      (review) => (
+                        <ReviewCard
+                          key={review.id}
+                          review={review}
+                        />
+                      )
+                    )
+                  ) : (
+                    <div className="rounded-2xl bg-white/70 p-4 text-center">
+                      <MessageSquare className="mx-auto h-5 w-5 text-amber-300" />
+
+                      <p className="mt-2 text-[10px] font-bold text-slate-400">
+                        ยังไม่มีรีวิว
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </article>
+            </div>
           </section>
         </>
       )}
@@ -950,69 +1041,750 @@ export default function SitterDashboardPage() {
 }
 
 /* =========================================================
- * OVERVIEW CARD
+ * SITTER EARNINGS
  * ======================================================= */
 
-function OverviewCard({
-  icon,
+async function getSitterEarnings(
+  sitterProfileId: string
+): Promise<SitterEarningsSummary> {
+  const {
+    data: bookingRows,
+    error: bookingError,
+  } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq(
+      'sitter_id',
+      sitterProfileId
+    );
+
+  if (bookingError) {
+    console.error(
+      'GET SITTER EARNINGS BOOKINGS ERROR:',
+      bookingError
+    );
+
+    throw new Error(
+      bookingError.message
+    );
+  }
+
+  const bookingIds =
+    (bookingRows ?? []).map(
+      (item) => item.id
+    );
+
+  if (bookingIds.length === 0) {
+    return initialEarnings;
+  }
+
+  const {
+    data: payments,
+    error: paymentError,
+  } = await supabase
+    .from('payments')
+    .select(`
+      amount,
+      commission_fee,
+      net_amount,
+      payment_status
+    `)
+    .in(
+      'booking_id',
+      bookingIds
+    )
+    .eq(
+      'payment_status',
+      'PAID'
+    );
+
+  if (paymentError) {
+    console.error(
+      'GET SITTER EARNINGS PAYMENTS ERROR:',
+      paymentError
+    );
+
+    throw new Error(
+      paymentError.message
+    );
+  }
+
+  return (payments ?? []).reduce(
+    (
+      summary,
+      payment
+    ) => ({
+      grossAmount:
+        summary.grossAmount +
+        Number(
+          payment.amount ?? 0
+        ),
+
+      commissionFee:
+        summary.commissionFee +
+        Number(
+          payment.commission_fee ?? 0
+        ),
+
+      netAmount:
+        summary.netAmount +
+        Number(
+          payment.net_amount ?? 0
+        ),
+
+      paidCount:
+        summary.paidCount + 1,
+    }),
+    {
+      grossAmount: 0,
+      commissionFee: 0,
+      netAmount: 0,
+      paidCount: 0,
+    }
+  );
+}
+
+/* =========================================================
+ * FORMAT MONEY
+ * ======================================================= */
+
+function formatMoney(
+  value: number
+) {
+  return new Intl.NumberFormat(
+    'th-TH',
+    {
+      style: 'currency',
+      currency: 'THB',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }
+  ).format(
+    Number.isFinite(value)
+      ? value
+      : 0
+  );
+}
+
+/* =========================================================
+ * CURRENT JOBS
+ * ======================================================= */
+
+async function getCurrentJobs(
+  sitterProfileId: string
+): Promise<CurrentJob[]> {
+  const {
+    data: bookings,
+    error: bookingError,
+  } = await supabase
+    .from('bookings')
+    .select(`
+      id,
+      booking_code,
+      owner_id,
+      pet_id,
+      start_date,
+      end_date,
+      status,
+      total_price,
+      created_at
+    `)
+    .eq(
+      'sitter_id',
+      sitterProfileId
+    )
+    .in(
+      'status',
+      [
+        'PENDING',
+        'CONFIRMED',
+        'IN_PROGRESS',
+      ]
+    )
+    .order(
+      'created_at',
+      {
+        ascending: false,
+      }
+    )
+    .limit(6);
+
+  if (bookingError) {
+    console.error(
+      'GET CURRENT JOBS ERROR:',
+      bookingError
+    );
+
+    throw new Error(
+      bookingError.message
+    );
+  }
+
+  if (!bookings?.length) {
+    return [];
+  }
+
+  const ownerIds = [
+    ...new Set(
+      bookings.map(
+        (item) => item.owner_id
+      )
+    ),
+  ];
+
+  const petIds = [
+    ...new Set(
+      bookings.map(
+        (item) => item.pet_id
+      )
+    ),
+  ];
+
+  const bookingIds =
+    bookings.map(
+      (item) => item.id
+    );
+
+  const [
+    ownerResult,
+    petResult,
+    paymentResult,
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select(`
+        id,
+        display_name,
+        first_name,
+        last_name
+      `)
+      .in(
+        'id',
+        ownerIds
+      ),
+
+    supabase
+      .from('pets')
+      .select(`
+        id,
+        name,
+        photo_url
+      `)
+      .in(
+        'id',
+        petIds
+      ),
+
+    supabase
+      .from('payments')
+      .select(`
+        booking_id,
+        payment_status
+      `)
+      .in(
+        'booking_id',
+        bookingIds
+      ),
+  ]);
+
+  if (ownerResult.error) {
+    throw new Error(
+      ownerResult.error.message
+    );
+  }
+
+  if (petResult.error) {
+    throw new Error(
+      petResult.error.message
+    );
+  }
+
+  if (paymentResult.error) {
+    throw new Error(
+      paymentResult.error.message
+    );
+  }
+
+  const ownerMap =
+    new Map(
+      (ownerResult.data ?? []).map(
+        (owner) => {
+          const fullName = [
+            owner.first_name,
+            owner.last_name,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+          return [
+            owner.id,
+            owner.display_name?.trim() ||
+              fullName ||
+              'เจ้าของสัตว์เลี้ยง',
+          ];
+        }
+      )
+    );
+
+  const petMap =
+    new Map(
+      (petResult.data ?? []).map(
+        (pet) => [
+          pet.id,
+          pet,
+        ]
+      )
+    );
+
+  const paymentMap =
+    new Map(
+      (paymentResult.data ?? []).map(
+        (payment) => [
+          payment.booking_id,
+          payment.payment_status,
+        ]
+      )
+    );
+
+  return bookings.map(
+    (item) => {
+      const pet =
+        petMap.get(
+          item.pet_id
+        );
+
+      return {
+        id:
+          item.id,
+
+        bookingCode:
+          item.booking_code,
+
+        ownerName:
+          ownerMap.get(
+            item.owner_id
+          ) ||
+          'เจ้าของสัตว์เลี้ยง',
+
+        petName:
+          pet?.name ||
+          'สัตว์เลี้ยง',
+
+        petPhotoUrl:
+          pet?.photo_url ??
+          null,
+
+        startDate:
+          item.start_date,
+
+        endDate:
+          item.end_date,
+
+        status:
+          item.status,
+
+        totalPrice:
+          Number(
+            item.total_price ??
+            0
+          ),
+
+        paymentStatus:
+          paymentMap.get(
+            item.id
+          ) ??
+          null,
+      };
+    }
+  );
+}
+
+/* =========================================================
+ * CURRENT JOB CARD
+ * ======================================================= */
+
+function CurrentJobCard({
+  job,
+  onOpen,
+}: {
+  job: CurrentJob;
+  onOpen: () => void;
+}) {
+  const status =
+    getCurrentJobStatus(
+      job.status
+    );
+
+  const paymentPaid =
+    job.paymentStatus ===
+    'PAID';
+
+  return (
+    <div className="rounded-2xl border border-purple-100 bg-[#FAF7FE] p-3.5">
+      <div className="flex items-start gap-3">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white">
+          {job.petPhotoUrl ? (
+            <img
+              src={
+                job.petPhotoUrl
+              }
+              alt={
+                job.petName
+              }
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-purple-300">
+              <PawPrint className="h-5 w-5" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="truncate text-sm font-black text-purple-950">
+                {job.petName}
+              </p>
+
+              <p className="mt-0.5 text-[10px] text-slate-400">
+                เจ้าของ: {job.ownerName}
+              </p>
+            </div>
+
+            <span
+              className={`rounded-full px-2.5 py-1 text-[9px] font-black ${status.className}`}
+            >
+              {status.label}
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-500">
+            <span>
+              {formatShortDate(
+                job.startDate
+              )}{' '}
+              -{' '}
+              {formatShortDate(
+                job.endDate
+              )}
+            </span>
+
+            {job.status ===
+              'CONFIRMED' && (
+              <span
+                className={`font-black ${
+                  paymentPaid
+                    ? 'text-emerald-600'
+                    : 'text-amber-600'
+                }`}
+              >
+                {paymentPaid
+                  ? 'ชำระเงินแล้ว'
+                  : 'รอการชำระเงิน'}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-white px-3 py-2 text-[10px] font-black text-purple-700 transition hover:bg-purple-50"
+        >
+          ดูรายละเอียด
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+ * CURRENT JOB STATUS
+ * ======================================================= */
+
+function getCurrentJobStatus(
+  status: string
+) {
+  switch (status) {
+    case 'PENDING':
+      return {
+        label:
+          'คำขอใหม่',
+        className:
+          'bg-amber-100 text-amber-700',
+      };
+
+    case 'CONFIRMED':
+      return {
+        label:
+          'ยืนยันแล้ว',
+        className:
+          'bg-blue-100 text-blue-700',
+      };
+
+    case 'IN_PROGRESS':
+      return {
+        label:
+          'กำลังดูแล',
+        className:
+          'bg-purple-100 text-purple-700',
+      };
+
+    default:
+      return {
+        label:
+          status,
+        className:
+          'bg-slate-100 text-slate-600',
+      };
+  }
+}
+
+/* =========================================================
+ * EARNING SUMMARY ROW
+ * ======================================================= */
+
+function EarningSummaryRow({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span
+        className={`text-xs ${
+          emphasis
+            ? 'font-black text-purple-950'
+            : 'text-slate-500'
+        }`}
+      >
+        {label}
+      </span>
+
+      <span
+        className={`text-right ${
+          emphasis
+            ? 'text-lg font-black text-emerald-700'
+            : 'text-sm font-black text-slate-700'
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* =========================================================
+ * FORMAT SHORT DATE
+ * ======================================================= */
+
+function formatShortDate(
+  value: string
+) {
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    'th-TH',
+    {
+      day:
+        'numeric',
+      month:
+        'short',
+    }
+  ).format(date);
+}
+
+/* =========================================================
+ * PASTEL STAT CARD
+ * ======================================================= */
+
+function PastelStatCard({
   label,
   value,
   subtext,
+  icon,
+  tone,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: string;
   subtext: string;
+  icon: React.ReactNode;
+  tone:
+    | 'yellow'
+    | 'purple'
+    | 'green'
+    | 'pink';
 }) {
+  const toneClasses = {
+    yellow:
+      'bg-[#FFF6D8] text-amber-700',
+    purple:
+      'bg-[#F1E8FF] text-purple-700',
+    green:
+      'bg-[#E8F8EF] text-emerald-700',
+    pink:
+      'bg-[#FFEAF2] text-rose-700',
+  } as const;
+
   return (
-    <article className="min-w-0 rounded-[18px] border border-purple-100 bg-white p-3.5 shadow-sm sm:p-4">
-
-      <div className="flex items-center justify-between gap-2">
-
-        <p className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">
-          {label}
-        </p>
-
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+    <article className="rounded-[24px] bg-white p-4 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+      <div className="flex items-start justify-between gap-2">
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses[tone]}`}
+        >
           {icon}
         </div>
 
+        <span className="text-[9px] font-bold text-slate-300">
+          PetBnB
+        </span>
       </div>
 
-      <p className="mt-2 truncate text-lg font-black text-purple-950 sm:text-xl">
+      <p className="mt-4 text-[10px] font-bold text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-xl font-black tracking-tight text-purple-950">
         {value}
       </p>
 
-      <p className="mt-0.5 truncate text-[9px] text-slate-400 sm:text-[10px]">
+      <p className="mt-1 text-[9px] text-slate-400">
         {subtext}
       </p>
-
     </article>
   );
 }
 
 /* =========================================================
- * BOOKING ROW
+ * DASHBOARD JOB CARD
  * ======================================================= */
 
-function BookingRow({
-  label,
-  value,
+function DashboardJobCard({
+  job,
+  onOpen,
 }: {
-  label: string;
-  value: number;
+  job: CurrentJob;
+  onOpen: () => void;
 }) {
+  const status =
+    getCurrentJobStatus(
+      job.status
+    );
+
+  const paymentPaid =
+    job.paymentStatus ===
+    'PAID';
+
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2">
+    <div className="mt-5 grid gap-4 rounded-[24px] bg-[#F8F4FF] p-4 sm:grid-cols-[110px_1fr] sm:p-5">
+      <div className="h-28 overflow-hidden rounded-[20px] bg-white">
+        {job.petPhotoUrl ? (
+          <img
+            src={job.petPhotoUrl}
+            alt={job.petName}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-purple-300">
+            <PawPrint className="h-9 w-9" />
+          </div>
+        )}
+      </div>
 
-      <span className="text-xs font-medium text-slate-500">
-        {label}
-      </span>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-black text-purple-950">
+                {job.petName}
+              </h3>
 
-      <span className="min-w-8 rounded-full bg-white px-2.5 py-1 text-center text-xs font-black text-purple-700 shadow-sm">
-        {value}
-      </span>
+              <span
+                className={`rounded-full px-2.5 py-1 text-[8px] font-black ${status.className}`}
+              >
+                {status.label}
+              </span>
+            </div>
 
+            <p className="mt-1 text-[10px] text-slate-400">
+              เจ้าของ {job.ownerName}
+            </p>
+          </div>
+
+          <p className="text-sm font-black text-purple-700">
+            {formatMoney(
+              job.totalPrice
+            )}
+          </p>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-bold text-slate-500">
+            {formatShortDate(
+              job.startDate
+            )}{' '}
+            -{' '}
+            {formatShortDate(
+              job.endDate
+            )}
+          </span>
+
+          {job.status ===
+            'CONFIRMED' && (
+            <span
+              className={`rounded-full px-3 py-1.5 text-[9px] font-black ${
+                paymentPaid
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              {paymentPaid
+                ? 'ชำระเงินแล้ว'
+                : 'รอชำระเงิน'}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span className="truncate text-[9px] text-slate-400">
+            {job.bookingCode ||
+              'Booking'}
+          </span>
+
+          <button
+            type="button"
+            onClick={onOpen}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-2 text-[10px] font-black text-white transition hover:bg-purple-700"
+          >
+            {job.status ===
+            'IN_PROGRESS'
+              ? 'อัปเดตการดูแล'
+              : 'ดูรายละเอียด'}
+
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -16,11 +16,14 @@ import Link from 'next/link';
 import {
   AlertCircle,
   CalendarDays,
+  CheckCircle2,
   ChevronRight,
   Clock3,
   Loader2,
+  PawPrint,
   Search,
   UserRound,
+  Wallet,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -386,26 +389,80 @@ export default function SitterBookingsPage() {
     <main className="min-h-screen bg-[#FAF8FE]">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         {/* =================================================
-         * HEADER
+         * PAGE HEADER
          * =============================================== */}
 
-        <section className="rounded-3xl border border-purple-100 bg-white px-5 py-5 shadow-sm sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-1 text-[10px] font-bold text-purple-700">
-                <CalendarDays className="h-3.5 w-3.5" />
+        <section className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+              Booking Management
+            </p>
 
-                Booking Management
-              </div>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
+              งานรับฝาก
+            </h1>
 
-              <h1 className="mt-2 text-xl font-black text-[#2E1065] sm:text-2xl">
-                รายการจอง
-              </h1>
+            <p className="mt-1 text-xs leading-5 text-slate-400 sm:text-sm">
+              จัดการคำขอจองและติดตามสถานะงานทั้งหมดของคุณ
+            </p>
+          </div>
 
-              <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
-                ตรวจสอบคำขอและรายละเอียดสัตว์เลี้ยง
-                ก่อนรับหรือปฏิเสธงาน
-              </p>
+          <div className="flex items-center gap-2">
+            <div className="rounded-2xl bg-white px-4 py-2.5 text-[10px] font-black text-purple-700 shadow-sm ring-1 ring-purple-100">
+              ทั้งหมด {bookings.length} งาน
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+         * HERO SUMMARY
+         * =============================================== */}
+
+        <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E7D6FF] to-[#DCC6FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-6">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/40 blur-3xl" />
+
+          <div className="relative">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-[9px] font-black text-purple-700">
+              <CalendarDays className="h-3 w-3" />
+              Sitter Bookings
+            </div>
+
+            <h2 className="mt-4 text-xl font-black text-[#32105C] sm:text-2xl">
+              ภาพรวมงานรับฝากของคุณ
+            </h2>
+
+            <p className="mt-1 max-w-xl text-xs leading-5 text-purple-900/60">
+              ดูคำขอใหม่ งานที่ยืนยันแล้ว งานที่กำลังดูแล และงานที่เสร็จสิ้นได้จากหน้านี้
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <BookingSummaryCard
+                label="คำขอใหม่"
+                value={pendingCount}
+                icon={<Clock3 className="h-4 w-4" />}
+                tone="yellow"
+              />
+
+              <BookingSummaryCard
+                label="ยืนยันแล้ว"
+                value={confirmedCount}
+                icon={<CalendarDays className="h-4 w-4" />}
+                tone="purple"
+              />
+
+              <BookingSummaryCard
+                label="กำลังดูแล"
+                value={inProgressCount}
+                icon={<PawPrint className="h-4 w-4" />}
+                tone="green"
+              />
+
+              <BookingSummaryCard
+                label="เสร็จสิ้น"
+                value={completedCount}
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                tone="pink"
+              />
             </div>
           </div>
         </section>
@@ -415,7 +472,7 @@ export default function SitterBookingsPage() {
          * =============================================== */}
 
         {error && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <div className="mt-4 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
 
             <p className="text-xs font-bold text-rose-700">
@@ -428,109 +485,77 @@ export default function SitterBookingsPage() {
          * FILTERS
          * =============================================== */}
 
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
-          <FilterButton
-            label={`ทั้งหมด ${bookings.length}`}
-            active={
-              filter ===
-              'ALL'
-            }
-            onClick={() =>
-              setFilter('ALL')
-            }
-          />
+        <section className="mt-5 rounded-[24px] bg-white p-2 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+          <div className="flex gap-2 overflow-x-auto">
+            <FilterButton
+              label={`ทั้งหมด ${bookings.length}`}
+              active={filter === 'ALL'}
+              onClick={() =>
+                setFilter('ALL')
+              }
+            />
 
-          <FilterButton
-            label={`รอการตอบรับ ${pendingCount}`}
-            active={
-              filter ===
-              'PENDING'
-            }
-            onClick={() =>
-              setFilter(
-                'PENDING'
-              )
-            }
-          />
+            <FilterButton
+              label={`รอการตอบรับ ${pendingCount}`}
+              active={filter === 'PENDING'}
+              onClick={() =>
+                setFilter('PENDING')
+              }
+            />
 
-          <FilterButton
-            label="ยืนยันแล้ว"
-            active={
-              filter ===
-              'CONFIRMED'
-            }
-            onClick={() =>
-              setFilter(
-                'CONFIRMED'
-              )
-            }
-          />
+            <FilterButton
+              label={`ยืนยันแล้ว ${confirmedCount}`}
+              active={filter === 'CONFIRMED'}
+              onClick={() =>
+                setFilter('CONFIRMED')
+              }
+            />
 
-          <FilterButton
-            label="กำลังดูแล"
-            active={
-              filter ===
-              'IN_PROGRESS'
-            }
-            onClick={() =>
-              setFilter(
-                'IN_PROGRESS'
-              )
-            }
-          />
+            <FilterButton
+              label={`กำลังดูแล ${inProgressCount}`}
+              active={filter === 'IN_PROGRESS'}
+              onClick={() =>
+                setFilter('IN_PROGRESS')
+              }
+            />
 
-          <FilterButton
-            label="เสร็จสิ้น"
-            active={
-              filter ===
-              'COMPLETED'
-            }
-            onClick={() =>
-              setFilter(
-                'COMPLETED'
-              )
-            }
-          />
+            <FilterButton
+              label={`เสร็จสิ้น ${completedCount}`}
+              active={filter === 'COMPLETED'}
+              onClick={() =>
+                setFilter('COMPLETED')
+              }
+            />
 
-          <FilterButton
-            label="ปฏิเสธ"
-            active={
-              filter ===
-              'REJECTED'
-            }
-            onClick={() =>
-              setFilter(
-                'REJECTED'
-              )
-            }
-          />
+            <FilterButton
+              label="ปฏิเสธ"
+              active={filter === 'REJECTED'}
+              onClick={() =>
+                setFilter('REJECTED')
+              }
+            />
 
-          <FilterButton
-            label="ยกเลิก"
-            active={
-              filter ===
-              'CANCELLED'
-            }
-            onClick={() =>
-              setFilter(
-                'CANCELLED'
-              )
-            }
-          />
-        </div>
+            <FilterButton
+              label="ยกเลิก"
+              active={filter === 'CANCELLED'}
+              onClick={() =>
+                setFilter('CANCELLED')
+              }
+            />
+          </div>
+        </section>
 
         {/* =================================================
          * EMPTY
          * =============================================== */}
 
-        {filteredBookings.length ===
-        0 ? (
-          <section className="mt-3 flex min-h-62.5 flex-col items-center justify-center rounded-3xl border border-dashed border-purple-200 bg-white px-6 text-center">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-purple-50">
-              <Search className="h-5 w-5 text-purple-300" />
+        {filteredBookings.length === 0 ? (
+          <section className="mt-5 flex min-h-72 flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50">
+              <Search className="h-6 w-6 text-purple-300" />
             </div>
 
-            <h2 className="mt-3 text-sm font-black text-purple-950">
+            <h2 className="mt-4 text-sm font-black text-purple-950">
               ยังไม่มีรายการจอง
             </h2>
 
@@ -540,10 +565,10 @@ export default function SitterBookingsPage() {
           </section>
         ) : (
           /* ===============================================
-           * LIST
+           * BOOKING GRID
            * ============================================= */
 
-          <section className="mt-3 space-y-3">
+          <section className="mt-5 grid gap-4 xl:grid-cols-2">
             {filteredBookings.map(
               (booking) => {
                 const owner =
@@ -564,77 +589,58 @@ export default function SitterBookingsPage() {
 
                 return (
                   <article
-                    key={
-                      booking.id
-                    }
-                    className="overflow-hidden rounded-[22px] border border-purple-100 bg-white shadow-sm transition hover:border-purple-200 hover:shadow-md"
+                    key={booking.id}
+                    className="group rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(76,29,149,0.09)]"
                   >
-                    <div className="p-4 sm:p-5">
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                        {/* =================================
-                         * OWNER
-                         * =============================== */}
-
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-purple-100 bg-purple-50">
-                            {owner?.avatarUrl ? (
-                              <img
-                                src={
-                                  owner.avatarUrl
-                                }
-                                alt={
-                                  owner.displayName
-                                }
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center">
-                                <UserRound className="h-5 w-5 text-purple-400" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h2 className="truncate text-sm font-black text-purple-950">
-                                {owner?.displayName ||
-                                  'เจ้าของสัตว์เลี้ยง'}
-                              </h2>
-
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${status.className}`}
-                              >
-                                {
-                                  status.label
-                                }
-                              </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-[#F3ECFF]">
+                          {owner?.avatarUrl ? (
+                            <img
+                              src={owner.avatarUrl}
+                              alt={owner.displayName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <UserRound className="h-5 w-5 text-purple-400" />
                             </div>
-
-                            {booking.bookingCode && (
-                              <p className="mt-1 text-[10px] text-slate-400">
-                                {
-                                  booking.bookingCode
-                                }
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        {/* =================================
-                         * DATE
-                         * =============================== */}
+                        <div className="min-w-0">
+                          <h2 className="truncate text-sm font-black text-purple-950">
+                            {owner?.displayName ||
+                              'เจ้าของสัตว์เลี้ยง'}
+                          </h2>
 
-                        <div className="flex items-center gap-2 md:w-55">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50">
-                            <Clock3 className="h-4 w-4 text-purple-500" />
+                          <p className="mt-1 truncate text-[9px] text-slate-400">
+                            {booking.bookingCode ||
+                              'Booking'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[8px] font-black ${status.className}`}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-[#FAF7FE] p-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-purple-500">
+                            <Clock3 className="h-3.5 w-3.5" />
                           </div>
 
                           <div>
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-[8px] font-bold text-slate-400">
                               ช่วงเวลาฝาก
                             </p>
 
-                            <p className="mt-0.5 text-[11px] font-bold text-slate-600">
+                            <p className="mt-0.5 text-[10px] font-black text-slate-600">
                               {formatDate(
                                 booking.startDate
                               )}{' '}
@@ -643,76 +649,70 @@ export default function SitterBookingsPage() {
                                 booking.endDate
                               )}
                             </p>
-
-                            <p className="mt-0.5 text-[10px] font-bold text-purple-500">
-                              {days} วัน
-                            </p>
                           </div>
                         </div>
 
-                        {/* =================================
-                         * PRICE
-                         * =============================== */}
-
-                        <div className="md:w-27.5 md:text-right">
-                          <p className="text-[10px] text-slate-400">
-                            ยอดรวม
-                          </p>
-
-                          <p className="mt-0.5 text-lg font-black text-purple-700">
-                            {formatMoney(
-                              booking.totalPrice
-                            )}
-                          </p>
-                        </div>
-
-                        {/* =================================
-                         * DETAIL
-                         * =============================== */}
-
-                        <Link
-                          href={`/sitter/bookings/${booking.id}`}
-                          className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-purple-600 px-4 text-[11px] font-black text-white transition hover:bg-purple-700"
-                        >
-                          ดูรายละเอียด
-
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Link>
+                        <p className="mt-2 text-[9px] font-black text-purple-500">
+                          {days} วัน
+                        </p>
                       </div>
 
-                      {/* =================================
-                       * OWNER NOTE
-                       * =============================== */}
+                      <div className="rounded-2xl bg-[#FAF7FE] p-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-purple-500">
+                            <Wallet className="h-3.5 w-3.5" />
+                          </div>
 
-                      {booking.ownerNote && (
-                        <div className="mt-3 border-t border-purple-50 pt-3">
-                          <p className="line-clamp-1 text-[11px] leading-5 text-slate-500">
-                            <span className="font-bold text-purple-700">
-                              หมายเหตุ:
-                            </span>{' '}
-                            {
-                              booking.ownerNote
-                            }
-                          </p>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-400">
+                              ยอดรวม
+                            </p>
+
+                            <p className="mt-0.5 text-sm font-black text-purple-700">
+                              {formatMoney(
+                                booking.totalPrice
+                              )}
+                            </p>
+                          </div>
                         </div>
-                      )}
+                      </div>
+                    </div>
 
-                      {/* =================================
-                       * REJECT
-                       * =============================== */}
+                    {booking.ownerNote && (
+                      <div className="mt-4 rounded-2xl bg-[#FFF9F0] px-3.5 py-3">
+                        <p className="line-clamp-2 text-[10px] leading-5 text-slate-500">
+                          <span className="font-black text-amber-700">
+                            หมายเหตุ:
+                          </span>{' '}
+                          {booking.ownerNote}
+                        </p>
+                      </div>
+                    )}
 
-                      {booking.rejectionReason && (
-                        <div className="mt-3 rounded-xl bg-rose-50 px-3 py-2">
-                          <p className="line-clamp-1 text-[11px] text-rose-700">
-                            <span className="font-bold">
-                              เหตุผลที่ปฏิเสธ:
-                            </span>{' '}
-                            {
-                              booking.rejectionReason
-                            }
-                          </p>
-                        </div>
-                      )}
+                    {booking.rejectionReason && (
+                      <div className="mt-4 rounded-2xl bg-rose-50 px-3.5 py-3">
+                        <p className="line-clamp-2 text-[10px] leading-5 text-rose-700">
+                          <span className="font-black">
+                            เหตุผลที่ปฏิเสธ:
+                          </span>{' '}
+                          {booking.rejectionReason}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-purple-50 pt-4">
+                      <span className="text-[9px] text-slate-400">
+                        คลิกเพื่อดูรายละเอียดงาน
+                      </span>
+
+                      <Link
+                        href={`/sitter/bookings/${booking.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-2.5 text-[10px] font-black text-white transition hover:bg-purple-700"
+                      >
+                        ดูรายละเอียด
+
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
                     </div>
                   </article>
                 );
@@ -723,29 +723,55 @@ export default function SitterBookingsPage() {
       </div>
     </main>
   );
+
 }
 
 /* =========================================================
- * MINI SUMMARY
+ * BOOKING SUMMARY CARD
  * ======================================================= */
 
-function MiniSummary({
+function BookingSummaryCard({
   label,
   value,
+  icon,
+  tone,
 }: {
   label: string;
   value: number;
+  icon: React.ReactNode;
+  tone:
+    | 'yellow'
+    | 'purple'
+    | 'green'
+    | 'pink';
 }) {
-  return (
-    <div className="rounded-xl border border-purple-100 bg-[#FAF8FE] px-2 py-2.5 text-center">
-      <p className="text-lg font-black leading-none text-purple-950">
-        {value}
-      </p>
+  const toneClasses = {
+    yellow:
+      'bg-[#FFF6D8] text-amber-700',
+    purple:
+      'bg-[#F1E8FF] text-purple-700',
+    green:
+      'bg-[#E8F8EF] text-emerald-700',
+    pink:
+      'bg-[#FFEAF2] text-rose-700',
+  } as const;
 
-      <p className="mt-1 text-[9px] font-bold text-slate-400">
+  return (
+    <article className="rounded-[22px] bg-white/80 p-4 shadow-sm backdrop-blur">
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses[tone]}`}
+      >
+        {icon}
+      </div>
+
+      <p className="mt-4 text-[9px] font-bold text-slate-400">
         {label}
       </p>
-    </div>
+
+      <p className="mt-1 text-xl font-black text-purple-950">
+        {value}
+      </p>
+    </article>
   );
 }
 
@@ -768,10 +794,10 @@ function FilterButton({
       onClick={
         onClick
       }
-      className={`shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold transition ${
+      className={`shrink-0 rounded-[14px] px-3.5 py-2 text-[10px] font-black transition ${
         active
-          ? 'bg-purple-600 text-white shadow-sm'
-          : 'border border-purple-100 bg-white text-purple-700 hover:bg-purple-50'
+          ? 'bg-purple-600 text-white shadow-[0_6px_16px_rgba(124,58,237,0.18)]'
+          : 'bg-transparent text-slate-500 hover:bg-purple-50 hover:text-purple-700'
       }`}
     >
       {label}

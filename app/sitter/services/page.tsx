@@ -763,12 +763,8 @@ export default function SitterServicesPage() {
        * ================================================= */}
 
       <ToastNotification
-        message={
-          message
-        }
-        error={
-          error
-        }
+        message={message}
+        error={error}
         onCloseMessage={() => {
           clearToastTimer();
           setMessage('');
@@ -779,344 +775,304 @@ export default function SitterServicesPage() {
         }}
       />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         {/* =================================================
-         * HEADER
+         * PAGE HEADER
          * =============================================== */}
 
-        <section className="relative overflow-hidden rounded-[28px] border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-5 shadow-sm sm:p-6">
-          <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-purple-100/70 blur-3xl" />
-          <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
-            <BadgeCheck className="h-4 w-4" />
-
-            Certified Services
-          </div>
-
-          <h1 className="mt-3 text-2xl font-black text-purple-950">
-            บริการของฉัน
-          </h1>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            เพิ่มบริการได้เฉพาะประเภทสัตว์ที่คุณผ่านแบบทดสอบ
-            และได้รับสถานะ CERTIFIED แล้วเท่านั้น
-          </p>
-        </section>
-
-        {/* =================================================
-         * CERTIFIED CATEGORIES
-         * =============================================== */}
-
-        <section className="mt-5 rounded-[26px] border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
+        <section className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-black text-purple-950">
-              ประเภทสัตว์ที่ผ่านการรับรอง
-            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
+              Service Management
+            </p>
 
-            <p className="mt-1 text-xs text-slate-400">
-              ประเภทเหล่านี้อ้างอิงจากผลแบบทดสอบของคุณโดยตรง
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
+              บริการของฉัน
+            </h1>
+
+            <p className="mt-1 text-xs leading-5 text-slate-400 sm:text-sm">
+              จัดการบริการ ราคา และประเภทสัตว์ที่คุณผ่านการรับรอง
             </p>
           </div>
 
-          {categories.length ===
-          0 ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-5 text-center">
-              <AlertCircle className="mx-auto h-6 w-6 text-amber-500" />
+          <div className="rounded-2xl bg-white px-4 py-2.5 text-[10px] font-black text-purple-700 shadow-sm ring-1 ring-purple-100">
+            {services.length} บริการ
+          </div>
+        </section>
 
-              <p className="mt-2 text-sm font-bold text-amber-800">
-                ยังไม่มีประเภทสัตว์ที่ผ่านการรับรอง
-              </p>
+        {/* =================================================
+         * HERO
+         * =============================================== */}
 
-              <p className="mt-1 text-xs text-amber-700">
-                กรุณาทำแบบทดสอบประเภทสัตว์ให้ผ่านก่อนเพิ่มบริการ
-              </p>
+        <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E7D6FF] to-[#DCC6FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-6">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/40 blur-3xl" />
+
+          <div className="relative">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-[9px] font-black text-purple-700">
+              <BadgeCheck className="h-3 w-3" />
+              Certified Services
             </div>
-          ) : (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {categories.map(
-                (
-                  category
-                ) => (
+
+            <h2 className="mt-4 text-xl font-black text-[#32105C] sm:text-2xl">
+              สร้างบริการจากประเภทสัตว์ที่คุณผ่านการรับรอง
+            </h2>
+
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-purple-900/60">
+              คุณสามารถเพิ่มบริการได้เฉพาะประเภทสัตว์ที่ผ่านแบบทดสอบและได้รับสถานะ CERTIFIED แล้ว
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {categories.length === 0 ? (
+                <div className="rounded-2xl bg-white/70 px-4 py-3 text-[10px] font-bold text-amber-700">
+                  ยังไม่มีประเภทสัตว์ที่ผ่านการรับรอง
+                </div>
+              ) : (
+                categories.map((category) => (
                   <div
-                    key={
-                      category.categoryId
-                    }
-                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3.5 py-2.5"
+                    key={category.categoryId}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-white/80 px-3.5 py-2.5 shadow-sm"
                   >
                     <span className="text-lg">
-                      {category.icon ||
-                        '🐾'}
+                      {category.icon || '🐾'}
                     </span>
 
                     <div>
-                      <p className="text-xs font-black text-emerald-800">
-                        {
-                          category.nameTh
-                        }
+                      <p className="text-[10px] font-black text-purple-950">
+                        {category.nameTh}
                       </p>
 
-                      <p className="mt-0.5 text-[9px] font-bold text-emerald-600">
+                      <p className="mt-0.5 text-[8px] font-black text-emerald-600">
                         CERTIFIED
                       </p>
                     </div>
 
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                   </div>
-                )
+                ))
               )}
             </div>
-          )}
+          </div>
         </section>
 
         {/* =================================================
-         * MAIN CONTENT - TWO COLUMNS
+         * CONTENT
          * =============================================== */}
 
-        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          {/* LEFT: FORM */}
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-black text-purple-950">
-                {editingServiceId
-                  ? 'แก้ไขบริการ'
-                  : 'เพิ่มบริการ'}
-              </h2>
+        <section className="mt-5 grid items-start gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          {/* FORM */}
 
-              <p className="mt-1 text-xs text-slate-400">
-                กำหนดบริการและราคาในประเภทสัตว์ที่ผ่านการรับรอง
-              </p>
+          <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                  {editingServiceId ? 'Edit Service' : 'New Service'}
+                </p>
+
+                <h2 className="mt-1 text-base font-black text-purple-950">
+                  {editingServiceId
+                    ? 'แก้ไขบริการ'
+                    : 'เพิ่มบริการ'}
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  กำหนดรายละเอียดบริการและราคา
+                </p>
+              </div>
+
+              {editingServiceId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-600 transition hover:bg-slate-200"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  ยกเลิก
+                </button>
+              )}
             </div>
 
-            {editingServiceId && (
-              <button
-                type="button"
-                onClick={
-                  resetForm
-                }
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-200"
-              >
-                <X className="h-4 w-4" />
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-2 block text-[10px] font-black text-slate-500">
+                  ประเภทสัตว์
+                </label>
 
-                ยกเลิก
-              </button>
-            )}
-          </div>
+                <select
+                  value={form.categoryId}
+                  disabled={categories.length === 0}
+                  onChange={(event) =>
+                    setField(
+                      'categoryId',
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">
+                    เลือกประเภทสัตว์ที่ผ่านการรับรอง
+                  </option>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {/* CATEGORY */}
-
-            <div>
-              <label className="mb-2 block text-xs font-bold text-slate-600">
-                ประเภทสัตว์
-              </label>
-
-              <select
-                value={
-                  form.categoryId
-                }
-                disabled={
-                  categories.length ===
-                  0
-                }
-                onChange={(
-                  event
-                ) =>
-                  setField(
-                    'categoryId',
-                    event.target.value
-                  )
-                }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">
-                  เลือกประเภทสัตว์ที่ผ่านการรับรอง
-                </option>
-
-                {categories.map(
-                  (
-                    category
-                  ) => (
+                  {categories.map((category) => (
                     <option
-                      key={
-                        category.categoryId
-                      }
-                      value={
-                        category.categoryId
-                      }
+                      key={category.categoryId}
+                      value={category.categoryId}
                     >
-                      {
-                        category.nameTh
-                      }
+                      {category.nameTh}
                     </option>
-                  )
-                )}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-[10px] font-black text-slate-500">
+                  ชื่อบริการ
+                </label>
+
+                <input
+                  value={form.serviceName}
+                  onChange={(event) =>
+                    setField(
+                      'serviceName',
+                      event.target.value
+                    )
+                  }
+                  placeholder="เช่น รับฝากรายวัน"
+                  className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[10px] font-black text-slate-500">
+                    ราคา
+                  </label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.price}
+                    onChange={(event) =>
+                      setField(
+                        'price',
+                        event.target.value
+                      )
+                    }
+                    placeholder="เช่น 250"
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[10px] font-black text-slate-500">
+                    หน่วยราคา
+                  </label>
+
+                  <select
+                    value={form.priceUnit}
+                    onChange={(event) =>
+                      setField(
+                        'priceUnit',
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                  >
+                    <option value="DAY">
+                      บาท / วัน
+                    </option>
+
+                    <option value="NIGHT">
+                      บาท / คืน
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-[10px] font-black text-slate-500">
+                  รายละเอียดบริการ
+                </label>
+
+                <textarea
+                  rows={4}
+                  value={form.description}
+                  onChange={(event) =>
+                    setField(
+                      'description',
+                      event.target.value
+                    )
+                  }
+                  placeholder="อธิบายรายละเอียดการดูแล..."
+                  className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                />
+              </div>
             </div>
 
-            {/* SERVICE NAME */}
+            <button
+              type="button"
+              disabled={
+                saving ||
+                categories.length === 0
+              }
+              onClick={() =>
+                void handleSave()
+              }
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 text-xs font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.18)] transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : editingServiceId ? (
+                <Save className="h-4 w-4" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
 
-            <div>
-              <label className="mb-2 block text-xs font-bold text-slate-600">
-                ชื่อบริการ
-              </label>
+              {editingServiceId
+                ? 'บันทึกการแก้ไข'
+                : 'เพิ่มบริการ'}
+            </button>
+          </article>
 
-              <input
-                value={
-                  form.serviceName
-                }
-                onChange={(
-                  event
-                ) =>
-                  setField(
-                    'serviceName',
-                    event.target.value
-                  )
-                }
-                placeholder="เช่น รับฝากรายวัน"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
-              />
+          {/* SERVICE LIST */}
+
+          <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">
+                  My Services
+                </p>
+
+                <h2 className="mt-1 text-base font-black text-purple-950">
+                  บริการที่สร้างไว้
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Owner จะเห็นเฉพาะบริการที่เปิดใช้งาน
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-purple-50 px-3 py-2 text-[10px] font-black text-purple-700">
+                {services.length} รายการ
+              </div>
             </div>
 
-            {/* PRICE */}
+            {services.length === 0 ? (
+              <div className="mt-5 flex min-h-64 flex-col items-center justify-center rounded-[24px] bg-[#F8F4FF] px-6 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-purple-300 shadow-sm">
+                  <Plus className="h-6 w-6" />
+                </div>
 
-            <div>
-              <label className="mb-2 block text-xs font-bold text-slate-600">
-                ราคา
-              </label>
+                <p className="mt-3 text-sm font-black text-purple-950">
+                  ยังไม่มีบริการ
+                </p>
 
-              <input
-                type="number"
-                min="1"
-                value={
-                  form.price
-                }
-                onChange={(
-                  event
-                ) =>
-                  setField(
-                    'price',
-                    event.target.value
-                  )
-                }
-                placeholder="เช่น 250"
-                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
-              />
-            </div>
-
-            {/* PRICE UNIT */}
-
-            <div>
-              <label className="mb-2 block text-xs font-bold text-slate-600">
-                หน่วยราคา
-              </label>
-
-              <select
-                value={
-                  form.priceUnit
-                }
-                onChange={(
-                  event
-                ) =>
-                  setField(
-                    'priceUnit',
-                    event.target.value
-                  )
-                }
-                className="w-full rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
-              >
-                <option value="DAY">
-                  บาท / วัน
-                </option>
-
-                <option value="NIGHT">
-                  บาท / คืน
-                </option>
-              </select>
-            </div>
-
-            {/* DESCRIPTION */}
-
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-xs font-bold text-slate-600">
-                รายละเอียดบริการ
-              </label>
-
-              <textarea
-                rows={4}
-                value={
-                  form.description
-                }
-                onChange={(
-                  event
-                ) =>
-                  setField(
-                    'description',
-                    event.target.value
-                  )
-                }
-                placeholder="อธิบายรายละเอียดการดูแล..."
-                className="w-full resize-none rounded-2xl border border-purple-100 bg-[#FCFAFF] px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-purple-300 focus:bg-white focus:ring-4 focus:ring-purple-100"
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={
-              saving ||
-              categories.length ===
-                0
-            }
-            onClick={() =>
-              void handleSave()
-            }
-            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : editingServiceId ? (
-              <Save className="h-4 w-4" />
+                <p className="mt-1 text-xs text-slate-400">
+                  เพิ่มบริการแรกของคุณจากแบบฟอร์มด้านซ้าย
+                </p>
+              </div>
             ) : (
-              <Plus className="h-4 w-4" />
-            )}
-
-            {editingServiceId
-              ? 'บันทึกการแก้ไข'
-              : 'เพิ่มบริการ'}
-          </button>
-        </section>
-
-          {/* RIGHT: SERVICES */}
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div>
-            <h2 className="text-lg font-black text-purple-950">
-              บริการที่สร้างไว้
-            </h2>
-
-            <p className="mt-1 text-xs text-slate-400">
-              Owner จะเห็นเฉพาะบริการที่เปิดใช้งาน
-            </p>
-          </div>
-
-          {services.length ===
-          0 ? (
-            <div className="mt-4 rounded-[28px] border border-dashed border-purple-200 bg-white p-10 text-center">
-              <Plus className="mx-auto h-7 w-7 text-purple-200" />
-
-              <p className="mt-3 text-sm font-bold text-slate-600">
-                ยังไม่มีบริการ
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                เพิ่มบริการแรกของคุณได้จากแบบฟอร์มด้านบน
-              </p>
-            </div>
-          ) : (
-            <div className="mt-4 grid items-stretch gap-3">
-              {services.map(
-                (
-                  service
-                ) => {
+              <div className="mt-5 space-y-3">
+                {services.map((service) => {
                   const category =
                     categoryMap.get(
                       service.categoryId
@@ -1124,24 +1080,18 @@ export default function SitterServicesPage() {
 
                   return (
                     <article
-                      key={
-                        service.id
-                      }
-                      className="flex h-full flex-col rounded-[22px] border border-purple-100 bg-gradient-to-br from-white to-purple-50/35 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
+                      key={service.id}
+                      className="rounded-[24px] bg-[#FAF7FE] p-4 transition hover:bg-[#F6F0FF]"
                     >
-                      {/* SERVICE INFO */}
-
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="wrap-break-word font-black text-purple-950">
-                              {
-                                service.serviceName
-                              }
+                            <h3 className="wrap-break-word text-sm font-black text-purple-950">
+                              {service.serviceName}
                             </h3>
 
                             <span
-                              className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${
+                              className={`rounded-full px-2.5 py-1 text-[8px] font-black ${
                                 service.isActive
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : 'bg-slate-100 text-slate-500'
@@ -1153,58 +1103,41 @@ export default function SitterServicesPage() {
                             </span>
                           </div>
 
-                          <p className="mt-2 text-xs font-bold text-purple-600">
-                            {category?.icon ||
-                              '🐾'}{' '}
-                            {category
-                              ?.nameTh ||
+                          <p className="mt-2 text-[10px] font-black text-purple-600">
+                            {category?.icon || '🐾'}{' '}
+                            {category?.nameTh ||
                               service.categoryId}
                           </p>
+
+                          {service.description ? (
+                            <p className="mt-2 line-clamp-2 text-[10px] leading-5 text-slate-500">
+                              {service.description}
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-[10px] text-slate-300">
+                              ไม่มีรายละเอียดเพิ่มเติม
+                            </p>
+                          )}
                         </div>
 
-                        {/* PRICE */}
+                        <div className="shrink-0 sm:text-right">
+                          <p className="text-lg font-black text-purple-700">
+                            ฿
+                            {service.price.toLocaleString(
+                              'th-TH'
+                            )}
+                          </p>
 
-                        <p className="shrink-0 text-lg font-black text-purple-700">
-                          ฿
-                          {service.price.toLocaleString(
-                            'th-TH'
-                          )}
-                        </p>
+                          <p className="mt-0.5 text-[9px] text-slate-400">
+                            {service.priceUnit ===
+                            'NIGHT'
+                              ? 'ต่อคืน'
+                              : 'ต่อวัน'}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* DESCRIPTION */}
-
-                      {service.description ? (
-                        <p className="mt-3 wrap-break-word text-xs leading-6 text-slate-500">
-                          {
-                            service.description
-                          }
-                        </p>
-                      ) : (
-                        <p className="mt-3 text-xs text-slate-300">
-                          ไม่มีรายละเอียดเพิ่มเติม
-                        </p>
-                      )}
-
-                      {/* PRICE UNIT */}
-
-                      <p className="mt-2 text-[10px] text-slate-400">
-                        {service.priceUnit ===
-                        'NIGHT'
-                          ? 'ราคาต่อคืน'
-                          : 'ราคาต่อวัน'}
-                      </p>
-
-                      {/* =================================================
-                       * BUTTONS
-                       *
-                       * mt-auto ทำให้ปุ่มของทุก card อยู่ด้านล่างเท่ากัน
-                       * sm:grid-cols-3 ทำให้ปุ่มทั้ง 3 กว้างเท่ากัน
-                       * =============================================== */}
-
-                      <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
-                        {/* EDIT */}
-
+                      <div className="mt-4 flex flex-wrap gap-2 border-t border-purple-100 pt-4">
                         <button
                           type="button"
                           onClick={() =>
@@ -1212,33 +1145,11 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="
-                            col-span-2
-                            inline-flex
-                            h-11
-                            w-full
-                            items-center
-                            sm:col-span-1
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            bg-purple-50
-                            px-3
-                            text-xs
-                            font-bold
-                            text-purple-700
-                            transition
-                            hover:bg-purple-100
-                          "
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-[10px] font-black text-purple-700 shadow-sm transition hover:bg-purple-50"
                         >
-                          <Pencil className="h-4 w-4 shrink-0" />
-
-                          <span>
-                            แก้ไข
-                          </span>
+                          <Pencil className="h-3.5 w-3.5" />
+                          แก้ไข
                         </button>
-
-                        {/* TOGGLE */}
 
                         <button
                           type="button"
@@ -1251,38 +1162,17 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="
-                            inline-flex
-                            h-11
-                            w-full
-                            items-center
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            bg-slate-100
-                            px-3
-                            text-xs
-                            font-bold
-                            text-slate-600
-                            transition
-                            hover:bg-slate-200
-                            disabled:cursor-not-allowed
-                            disabled:opacity-50
-                          "
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-[10px] font-black text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                         >
                           {togglingId ===
                           service.id ? (
-                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : null}
 
-                          <span className="whitespace-nowrap">
-                            {service.isActive
-                              ? 'ปิดบริการ'
-                              : 'เปิดบริการ'}
-                          </span>
+                          {service.isActive
+                            ? 'ปิดบริการ'
+                            : 'เปิดบริการ'}
                         </button>
-
-                        {/* DELETE */}
 
                         <button
                           type="button"
@@ -1295,48 +1185,29 @@ export default function SitterServicesPage() {
                               service
                             )
                           }
-                          className="
-                            inline-flex
-                            h-11
-                            w-full
-                            items-center
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            bg-red-50
-                            px-3
-                            text-xs
-                            font-bold
-                            text-red-600
-                            transition
-                            hover:bg-red-100
-                            disabled:cursor-not-allowed
-                            disabled:opacity-50
-                          "
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3.5 py-2 text-[10px] font-black text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
                         >
                           {deletingId ===
                           service.id ? (
-                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <Trash2 className="h-4 w-4 shrink-0" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           )}
 
-                          <span>
-                            ลบ
-                          </span>
+                          ลบ
                         </button>
                       </div>
                     </article>
                   );
-                }
-              )}
-            </div>
-          )}
-          </section>
-        </div>
+                })}
+              </div>
+            )}
+          </article>
+        </section>
       </div>
     </main>
   );
+
 }
 
 /* =========================================================
