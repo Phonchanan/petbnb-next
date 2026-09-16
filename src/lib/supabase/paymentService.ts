@@ -14,6 +14,13 @@ export type PaymentStatus =
 export type PaymentMethod =
   | 'PROMPTPAY';
 
+export type EscrowStatus =
+  | 'NOT_HELD'
+  | 'HELD'
+  | 'RELEASED'
+  | 'REFUNDED'
+  | 'DISPUTED';
+
 export interface Payment {
   id: string;
   booking_id: string;
@@ -32,13 +39,20 @@ export interface Payment {
     | string
     | null;
 
-  escrow_status: string | null;
+  escrow_status:
+    | EscrowStatus
+    | string
+    | null;
 
   transaction_ref:
     | string
     | null;
 
   paid_at:
+    | string
+    | null;
+
+  released_at?:
     | string
     | null;
 
@@ -183,23 +197,26 @@ export async function createPayment(
 }
 
 /* =========================================================
- * SIMULATE PAYMENT SUCCESS
+ * SIMULATE PAYMENT SUCCESS AND HOLD ESCROW
  * ======================================================= */
 
 /**
  * ใช้สำหรับ Demo Payment
  *
  * RPC:
- * simulate_payment_success(
+ * simulate_payment_and_hold(
  *   p_payment_id uuid
  * )
  *
  * เปลี่ยน:
- * PENDING -> PAID
+ * payment_status: PENDING -> PAID
+ * escrow_status: NOT_HELD -> HELD
  *
  * พร้อมบันทึก:
  * paid_at
  * transaction_ref
+ * commission_fee 10%
+ * net_amount
  */
 export async function simulatePaymentSuccess(
   paymentId: string
@@ -214,7 +231,7 @@ export async function simulatePaymentSuccess(
     data,
     error,
   } = await supabase.rpc(
-    'simulate_payment_success',
+    'simulate_payment_and_hold',
     {
       p_payment_id:
         paymentId,
@@ -230,6 +247,40 @@ export async function simulatePaymentSuccess(
     throw new Error(
       error.message
     );
+  }
+
+  return data as Payment;
+}
+
+/* =========================================================
+ * RELEASE ESCROW
+ * ======================================================= */
+
+/**
+ * เจ้าของยืนยันหลัง Booking เสร็จสิ้น แล้วระบบจำลองการ
+ * ปล่อยยอดสุทธิให้ผู้รับฝาก
+ */
+export async function releaseEscrowForBooking(
+  bookingId: string
+): Promise<Payment> {
+  if (!bookingId) {
+    throw new Error('ไม่พบ booking id');
+  }
+
+  const { data, error } = await supabase.rpc(
+    'release_escrow_for_booking',
+    {
+      p_booking_id: bookingId,
+    }
+  );
+
+  if (error) {
+    console.error(
+      'releaseEscrowForBooking error:',
+      error
+    );
+
+    throw new Error(error.message);
   }
 
   return data as Payment;

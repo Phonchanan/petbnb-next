@@ -38,6 +38,11 @@ import {
   AdminBookingStatus,
 } from '@/lib/supabase/adminBookingService';
 
+import {
+  getPaymentByBookingId,
+  Payment,
+} from '@/lib/supabase/paymentService';
+
 /* =========================================================
  * HELPERS
  * ======================================================= */
@@ -178,6 +183,40 @@ function getBookingDuration(
   )} วัน`;
 }
 
+function getPaymentStatusLabel(
+  status: string | null | undefined
+) {
+  switch (status) {
+    case 'PAID':
+      return 'ชำระเงินแล้ว';
+    case 'FAILED':
+      return 'ชำระเงินไม่สำเร็จ';
+    case 'EXPIRED':
+      return 'รายการหมดอายุ';
+    case 'REFUNDED':
+      return 'คืนเงินแล้ว';
+    default:
+      return 'รอชำระเงิน';
+  }
+}
+
+function getEscrowStatusLabel(
+  status: string | null | undefined
+) {
+  switch (status) {
+    case 'HELD':
+      return 'ระบบกำลังคุ้มครองยอดเงิน';
+    case 'RELEASED':
+      return 'ดำเนินการยอดให้ผู้รับเลี้ยงแล้ว';
+    case 'REFUNDED':
+      return 'คืนยอดให้เจ้าของแล้ว';
+    case 'DISPUTED':
+      return 'อยู่ระหว่างตรวจสอบ';
+    default:
+      return 'ยังไม่มีการคุ้มครองยอด';
+  }
+}
+
 /* =========================================================
  * PAGE
  * ======================================================= */
@@ -198,6 +237,13 @@ export default function AdminBookingDetailPage() {
     useState<AdminBookingDetail | null>(
       null
     );
+
+  const [
+    payment,
+    setPayment,
+  ] = useState<Payment | null>(
+    null
+  );
 
   const [
     loading,
@@ -244,12 +290,22 @@ export default function AdminBookingDetailPage() {
             return;
           }
 
-          const detail =
-            await AdminBookingService.getBookingById(
+          const [
+            detail,
+            paymentDetail,
+          ] = await Promise.all([
+            AdminBookingService.getBookingById(
               bookingId
-            );
+            ),
+            getPaymentByBookingId(
+              bookingId
+            ),
+          ]);
 
           setBooking(detail);
+          setPayment(
+            paymentDetail
+          );
         } catch (err) {
           console.error(
             'LOAD ADMIN BOOKING DETAIL ERROR:',
@@ -697,6 +753,90 @@ export default function AdminBookingDetailPage() {
               }
             />
           </div>
+        </section>
+
+        {/* PAYMENT */}
+
+        <section className="mt-5 rounded-3xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+          <SectionHeading
+            title="ข้อมูลการชำระเงิน"
+            icon={
+              <CreditCard className="h-5 w-5" />
+            }
+          />
+
+          {payment ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <InfoBox
+                label="ยอดชำระ"
+                value={formatCurrency(
+                  Number(payment.amount)
+                )}
+              />
+
+              <InfoBox
+                label="ค่าธรรมเนียมแพลตฟอร์ม"
+                value={formatCurrency(
+                  Number(
+                    payment.commission_fee ?? 0
+                  )
+                )}
+              />
+
+              <InfoBox
+                label="ยอดสุทธิของผู้รับเลี้ยง"
+                value={formatCurrency(
+                  Number(payment.net_amount)
+                )}
+              />
+
+              <InfoBox
+                label="สถานะการชำระเงิน"
+                value={getPaymentStatusLabel(
+                  payment.payment_status
+                )}
+              />
+
+              <InfoBox
+                label="สถานะการคุ้มครองยอด"
+                value={getEscrowStatusLabel(
+                  payment.escrow_status
+                )}
+              />
+
+              <InfoBox
+                label="ช่องทางชำระเงิน"
+                value={
+                  payment.payment_method ?? '-'
+                }
+              />
+
+              <InfoBox
+                label="เลขอ้างอิงธุรกรรม"
+                value={
+                  payment.transaction_ref ?? '-'
+                }
+              />
+
+              <InfoBox
+                label="ชำระเมื่อ"
+                value={formatDateTime(
+                  payment.paid_at
+                )}
+              />
+
+              <InfoBox
+                label="ดำเนินการยอดเมื่อ"
+                value={formatDateTime(
+                  payment.released_at
+                )}
+              />
+            </div>
+          ) : (
+            <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+              การจองนี้ยังไม่มีรายการชำระเงิน
+            </p>
+          )}
         </section>
 
         {/* TIMELINE */}

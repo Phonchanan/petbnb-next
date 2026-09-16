@@ -51,6 +51,7 @@ import {
 
 import {
   getPaymentByBookingId,
+  releaseEscrowForBooking,
   type Payment,
 } from '@/lib/supabase/paymentService';
 
@@ -134,6 +135,16 @@ export default function OwnerBookingDetailPage() {
     setError,
   ] =
     useState('');
+
+  const [
+    releasingEscrow,
+    setReleasingEscrow,
+  ] = useState(false);
+
+  const [
+    escrowMessage,
+    setEscrowMessage,
+  ] = useState('');
 
   /* =======================================================
    * DAILY CARE STATE
@@ -585,6 +596,44 @@ export default function OwnerBookingDetailPage() {
   useEffect(() => {
     void loadData();
   }, [bookingId]);
+
+  /* =======================================================
+   * OWNER CONFIRMS SERVICE / RELEASE ESCROW
+   * ===================================================== */
+
+  const handleReleaseEscrow = async () => {
+    if (!booking || releasingEscrow) {
+      return;
+    }
+
+    try {
+      setReleasingEscrow(true);
+      setEscrowMessage('');
+
+      const releasedPayment =
+        await releaseEscrowForBooking(
+          booking.id
+        );
+
+      setPayment(releasedPayment);
+      setEscrowMessage(
+        'ยืนยันการรับสัตว์เลี้ยงกลับเรียบร้อยแล้ว'
+      );
+    } catch (err) {
+      console.error(
+        'RELEASE ESCROW ERROR:',
+        err
+      );
+
+      setEscrowMessage(
+        err instanceof Error
+          ? err.message
+          : 'ไม่สามารถปล่อยยอดได้'
+      );
+    } finally {
+      setReleasingEscrow(false);
+    }
+  };
 
   /* =======================================================
    * SUBMIT REVIEW
@@ -1694,6 +1743,72 @@ export default function OwnerBookingDetailPage() {
 
                 ดูรายละเอียดการชำระเงิน
               </button>
+            )}
+
+            {/* ESCROW ACTION */}
+
+            {booking.status ===
+              'COMPLETED' &&
+              payment?.payment_status ===
+                'PAID' &&
+              payment.escrow_status ===
+                'HELD' && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-xs font-black text-amber-800">
+                    ผู้รับฝากแจ้งว่าการดูแลเสร็จสิ้นแล้ว
+                  </p>
+
+                  <p className="mt-1 text-[10px] leading-5 text-amber-700">
+                    กรุณายืนยันหลังจากได้รับสัตว์เลี้ยงกลับเรียบร้อยแล้ว
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled={
+                      releasingEscrow
+                    }
+                    onClick={() =>
+                      void handleReleaseEscrow()
+                    }
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {releasingEscrow ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        กำลังยืนยัน...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        ยืนยันว่ารับสัตว์เลี้ยงกลับแล้ว
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+            {payment?.escrow_status ===
+              'RELEASED' && (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-center gap-2 text-xs font-black text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  การจองเสร็จสมบูรณ์
+                </div>
+
+                {payment.released_at && (
+                  <p className="mt-1 text-[10px] text-emerald-600">
+                    {formatDateTime(
+                      payment.released_at
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {escrowMessage && (
+              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-600">
+                {escrowMessage}
+              </p>
             )}
 
             {/* COMPLETED */}

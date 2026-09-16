@@ -371,7 +371,7 @@ export default function OwnerPaymentPage() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  การชำระเงินของคุณได้รับการบันทึกเรียบร้อยแล้ว
+                  ระบบบันทึกและคุ้มครองยอดชำระไว้จนกว่าการดูแลจะเสร็จสิ้น
                 </p>
 
                 <div className="mt-6 space-y-3 rounded-2xl bg-slate-50 p-5 text-left text-sm">
@@ -384,6 +384,44 @@ export default function OwnerPaymentPage() {
                       {formatPaymentAmount(
                         payment?.amount
                       )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      ค่าคอมมิชชัน 10%
+                    </span>
+
+                    <span className="font-bold text-rose-600">
+                      {formatPaymentAmount(
+                        payment?.commission_fee
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      รายได้สุทธิผู้รับฝาก
+                    </span>
+
+                    <span className="font-black text-emerald-700">
+                      {formatPaymentAmount(
+                        payment?.net_amount
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
+                    <span className="text-slate-500">
+                      การคุ้มครองยอดชำระ
+                    </span>
+
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-700">
+                      {payment?.escrow_status ===
+                      'HELD'
+                        ? 'คุ้มครองยอดแล้ว'
+                        : payment?.escrow_status ||
+                          '-'}
                     </span>
                   </div>
 
@@ -410,6 +448,16 @@ export default function OwnerPaymentPage() {
                       )}
                     </span>
                   </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-left">
+                  <p className="text-xs font-black text-amber-800">
+                    การชำระเงินได้รับการคุ้มครอง
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-amber-700">
+                    ระบบจะดำเนินการด้านการชำระเงินอัตโนมัติ หลังผู้รับฝากแจ้งจบงานและเจ้าของยืนยันว่าได้รับสัตว์เลี้ยงกลับเรียบร้อยแล้ว
+                  </p>
                 </div>
 
                 <button

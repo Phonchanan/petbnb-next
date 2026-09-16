@@ -1392,11 +1392,11 @@ export default function SitterBookingDetailPage() {
 
                     <div>
                       <p className="text-xs font-black text-emerald-700">
-                        การให้บริการเสร็จสิ้นแล้ว
+                        แจ้งเจ้าของว่าบริการเสร็จสิ้นแล้ว
                       </p>
 
                       <p className="mt-0.5 text-[10px] text-emerald-600">
-                        ประวัติการอัปเดตยังสามารถดูย้อนหลังได้
+                        รอเจ้าของยืนยันการรับสัตว์เลี้ยงกลับ
                       </p>
                     </div>
                   </div>
@@ -1726,21 +1726,71 @@ export default function SitterBookingDetailPage() {
                       <CheckCircle2 className="h-4 w-4" />
                     )}
 
-                    เสร็จสิ้นการให้บริการ
+                    แจ้งเจ้าของว่าบริการเสร็จสิ้น
                   </button>
                 </div>
               )}
 
               {booking.status ===
                 'COMPLETED' && (
-                <div className="mt-5 rounded-[22px] bg-emerald-50 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <div
+                  className={`mt-5 rounded-[22px] px-4 py-3 ${
+                    payment?.escrow_status ===
+                    'RELEASED'
+                      ? 'bg-emerald-50'
+                      : 'bg-amber-50'
+                  }`}
+                >
+                  {payment?.escrow_status ===
+                  'RELEASED' ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
 
-                    <p className="text-xs font-black text-emerald-700">
-                      ให้บริการเสร็จสิ้นแล้ว
-                    </p>
-                  </div>
+                        <p className="text-xs font-black text-emerald-700">
+                          การจองเสร็จสมบูรณ์
+                        </p>
+                      </div>
+
+                      <div className="mt-3 rounded-xl bg-white/80 px-3 py-2">
+                        <p className="text-[9px] font-bold text-slate-400">
+                          รายได้สุทธิหลังหักค่าคอมมิชชัน 10%
+                        </p>
+
+                        <p className="mt-1 text-base font-black text-emerald-700">
+                          {formatMoney(
+                            Number(
+                              payment.net_amount ??
+                                0
+                            )
+                          )}
+                        </p>
+                      </div>
+
+                      {payment.released_at && (
+                        <p className="mt-2 text-[9px] text-emerald-600">
+                          ปล่อยยอดเมื่อ{' '}
+                          {formatPaymentDateTime(
+                            payment.released_at
+                          )}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Clock3 className="h-4 w-4 text-amber-500" />
+
+                        <p className="text-xs font-black text-amber-700">
+                          รอเจ้าของยืนยันการรับสัตว์เลี้ยงกลับ
+                        </p>
+                      </div>
+
+                      <p className="mt-1 text-[9px] leading-4 text-amber-600">
+                        ระบบจะแจ้งผลเมื่อเจ้าของยืนยันว่าได้รับสัตว์เลี้ยงกลับเรียบร้อยแล้ว
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </section>
@@ -2517,6 +2567,6 @@ function getActionSuccessMessage(
       return 'เริ่มให้บริการเรียบร้อยแล้ว';
 
     case 'COMPLETED':
-      return 'บันทึกการให้บริการเสร็จสิ้นแล้ว';
+      return 'แจ้งเจ้าของว่าการให้บริการเสร็จสิ้นแล้ว';
   }
 }

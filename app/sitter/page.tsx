@@ -68,6 +68,8 @@ interface SitterEarningsSummary {
   grossAmount: number;
   commissionFee: number;
   netAmount: number;
+  pendingAmount: number;
+  completedAmount: number;
   paidCount: number;
 }
 
@@ -75,6 +77,8 @@ const initialEarnings: SitterEarningsSummary = {
   grossAmount: 0,
   commissionFee: 0,
   netAmount: 0,
+  pendingAmount: 0,
+  completedAmount: 0,
   paidCount: 0,
 };
 
@@ -983,7 +987,34 @@ export default function SitterDashboardPage() {
                       )}
                     </p>
                   </div>
+
+                  <div className="rounded-2xl bg-amber-400/15 p-3">
+                    <p className="text-[8px] font-bold text-amber-100">
+                      รายได้รอดำเนินการ
+                    </p>
+                    <p className="mt-1 text-xs font-black">
+                      {formatMoney(earnings.pendingAmount)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-emerald-400/15 p-3">
+                    <p className="text-[8px] font-bold text-emerald-100">
+                      รายได้สำเร็จแล้ว
+                    </p>
+                    <p className="mt-1 text-xs font-black">
+                      {formatMoney(earnings.completedAmount)}
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/sitter/earnings')}
+                  className="mt-4 inline-flex items-center gap-1 text-[10px] font-black text-purple-200 transition hover:text-white"
+                >
+                  ดูประวัติรายได้
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </article>
 
               <article className="rounded-[28px] bg-[#FFF9F0] p-5 shadow-[0_8px_30px_rgba(76,29,149,0.04)] sm:p-6">
@@ -1087,7 +1118,8 @@ async function getSitterEarnings(
       amount,
       commission_fee,
       net_amount,
-      payment_status
+      payment_status,
+      escrow_status
     `)
     .in(
       'booking_id',
@@ -1132,6 +1164,18 @@ async function getSitterEarnings(
           payment.net_amount ?? 0
         ),
 
+      pendingAmount:
+        summary.pendingAmount +
+        (payment.escrow_status === 'HELD'
+          ? Number(payment.net_amount ?? 0)
+          : 0),
+
+      completedAmount:
+        summary.completedAmount +
+        (payment.escrow_status === 'RELEASED'
+          ? Number(payment.net_amount ?? 0)
+          : 0),
+
       paidCount:
         summary.paidCount + 1,
     }),
@@ -1139,6 +1183,8 @@ async function getSitterEarnings(
       grossAmount: 0,
       commissionFee: 0,
       netAmount: 0,
+      pendingAmount: 0,
+      completedAmount: 0,
       paidCount: 0,
     }
   );
