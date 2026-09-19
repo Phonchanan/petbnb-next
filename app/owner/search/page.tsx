@@ -231,7 +231,8 @@ export default function OwnerSearchPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-100 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
@@ -239,29 +240,32 @@ export default function OwnerSearchPage() {
             กำลังโหลดผู้รับฝาก...
           </p>
         </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7 lg:px-8">
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-7 lg:px-8">
       {/* SEARCH */}
-      <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6 lg:p-7">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-6 lg:p-7">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+        <div className="relative inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">
           <Search className="h-3.5 w-3.5" />
           Find Sitter
         </div>
 
-        <h1 className="mt-3 text-xl font-black text-[#2E1065] sm:text-2xl lg:text-3xl">
+        <h1 className="relative mt-3 text-2xl font-black tracking-tight text-[#2E1065] sm:text-3xl">
           ค้นหาผู้รับฝากสัตว์เลี้ยง
         </h1>
 
-        <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">
+        <p className="relative mt-2 max-w-2xl text-xs font-medium leading-5 text-purple-950/60 sm:text-sm sm:leading-6">
           ค้นหาผู้รับฝากที่เหมาะกับสัตว์เลี้ยงของคุณ
           จากพื้นที่ ประเภทสัตว์ และความเชี่ยวชาญ
         </p>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="relative mt-5 grid gap-3 rounded-[24px] bg-white/75 p-3 backdrop-blur sm:grid-cols-2 xl:grid-cols-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -361,7 +365,7 @@ export default function OwnerSearchPage() {
 
       {/* TOP 3 */}
       {recommendedSitters.length > 0 && (
-        <section className="mt-7">
+        <section className="mt-7 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
           <div>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
@@ -402,7 +406,7 @@ export default function OwnerSearchPage() {
         </div>
 
         {filteredSitters.length === 0 ? (
-          <div className="mt-5 flex min-h-65 flex-col items-center justify-center rounded-[28px] border border-dashed border-purple-200 bg-white px-5 text-center">
+          <div className="mt-5 flex min-h-65 flex-col items-center justify-center rounded-[28px] bg-white px-5 text-center shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
             <Search className="h-8 w-8 text-purple-200" />
 
             <h3 className="mt-4 text-sm font-black text-slate-700">
@@ -417,7 +421,7 @@ export default function OwnerSearchPage() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-4 rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
+                className="mt-4 rounded-2xl bg-[#7C3AED] px-5 py-2.5 text-xs font-black text-white transition hover:bg-purple-700"
               >
                 ล้างตัวกรอง
               </button>
@@ -428,7 +432,7 @@ export default function OwnerSearchPage() {
             {filteredSitters.map((sitter) => (
               <article
                 key={sitter.sitterProfileId}
-                className="flex h-full min-w-0 flex-col rounded-[26px] border border-purple-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
+                className="flex h-full min-w-0 flex-col rounded-[26px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(76,29,149,0.09)]"
               >
                 <div className="flex gap-4">
                   <SitterAvatar
@@ -493,7 +497,7 @@ export default function OwnerSearchPage() {
                 </div>
 
                 {sitter.specialty && (
-                  <div className="mt-4 rounded-2xl bg-[#FAF8FE] px-4 py-3">
+                  <div className="mt-4 rounded-[18px] bg-[#F8F4FF] px-4 py-3">
                     <p className="line-clamp-2 text-xs leading-5 text-slate-600">
                       {sitter.specialty}
                     </p>
@@ -528,7 +532,7 @@ export default function OwnerSearchPage() {
 
                   <Link
                     href={`/owner/search/${sitter.sitterProfileId}`}
-                    className="inline-flex shrink-0 items-center justify-center rounded-full bg-purple-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
+                    className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-2.5 text-xs font-black text-white shadow-[0_7px_16px_rgba(124,58,237,0.18)] transition hover:bg-purple-700"
                   >
                     ดูรายละเอียด
                   </Link>
@@ -538,6 +542,7 @@ export default function OwnerSearchPage() {
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }
@@ -561,7 +566,7 @@ function RecommendedSitterCard({
       href={`/owner/search/${sitter.sitterProfileId}`}
       className="group block h-full"
     >
-      <article className="flex h-full min-w-0 flex-col rounded-[22px] border border-purple-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md">
+      <article className="flex h-full min-w-0 flex-col rounded-[22px] bg-[#FBF9FE] p-4 transition hover:-translate-y-0.5 hover:bg-purple-50/80">
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
             <SitterAvatar
@@ -651,7 +656,7 @@ function RecommendedSitterCard({
             </p>
           </div>
 
-          <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-purple-600 px-4 py-2.5 text-xs font-bold text-white transition group-hover:bg-purple-700">
+          <span className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-2.5 text-xs font-black text-white transition group-hover:bg-purple-700">
             ดูรายละเอียด
           </span>
         </div>

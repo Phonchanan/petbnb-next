@@ -759,13 +759,15 @@ export default function OwnerBookingDetailPage() {
     loading
   ) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-105 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
           <p className="text-xs font-medium text-slate-400">
             กำลังโหลดรายละเอียดการจอง...
           </p>
+        </div>
         </div>
       </main>
     );
@@ -781,7 +783,8 @@ export default function OwnerBookingDetailPage() {
     !booking
   ) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={() =>
@@ -796,12 +799,13 @@ export default function OwnerBookingDetailPage() {
           กลับไปหน้าการจอง
         </button>
 
-        <section className="rounded-[30px] border border-rose-100 bg-white p-8 text-center shadow-sm">
+        <section className="rounded-[28px] bg-white p-8 text-center shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
           <div className="text-sm font-bold text-rose-600">
             {error ||
               'ไม่พบข้อมูลการจอง'}
           </div>
         </section>
+        </div>
       </main>
     );
   }
@@ -826,7 +830,8 @@ export default function OwnerBookingDetailPage() {
    * ===================================================== */
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
       {/* =================================================
        * BACK
        * =============================================== */}
@@ -849,8 +854,9 @@ export default function OwnerBookingDetailPage() {
        * HEADER
        * =============================================== */}
 
-      <section className="overflow-hidden rounded-[30px] border border-purple-100 bg-white shadow-sm">
-        <div className="bg-linear-to-r from-purple-50 via-white to-purple-50 p-6 sm:p-7">
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] shadow-[0_12px_35px_rgba(109,40,217,0.10)]">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+        <div className="relative p-6 sm:p-7">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-purple-400">
@@ -858,7 +864,7 @@ export default function OwnerBookingDetailPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-black text-purple-950">
+                <h1 className="text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
                   {booking.bookingCode ||
                     'Booking'}
                 </h1>
@@ -870,7 +876,7 @@ export default function OwnerBookingDetailPage() {
                 </span>
               </div>
 
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs font-medium text-purple-950/50">
                 สร้างเมื่อ{' '}
                 {formatDateTime(
                   booking.createdAt
@@ -878,7 +884,7 @@ export default function OwnerBookingDetailPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-purple-100 bg-white px-5 py-4 sm:text-right">
+            <div className="rounded-[22px] bg-white/80 px-5 py-4 shadow-[0_8px_20px_rgba(76,29,149,0.06)] backdrop-blur sm:text-right">
               <div className="text-[10px] font-bold text-slate-400">
                 ยอดรวม
               </div>
@@ -908,7 +914,7 @@ export default function OwnerBookingDetailPage() {
            * BOOKING INFORMATION
            * ============================================= */}
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
             <div className="mb-5">
               <h2 className="font-black text-purple-950">
                 รายละเอียดการฝาก
@@ -975,7 +981,7 @@ export default function OwnerBookingDetailPage() {
            * SITTER INFORMATION
            * ============================================= */}
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
             <div className="mb-5">
               <h2 className="font-black text-purple-950">
                 ข้อมูลผู้รับฝาก
@@ -1064,7 +1070,7 @@ export default function OwnerBookingDetailPage() {
           {(booking.ownerNote ||
             booking.sitterNote ||
             booking.rejectionReason) && (
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="font-black text-purple-950">
                 หมายเหตุ
               </h2>
@@ -1109,7 +1115,7 @@ export default function OwnerBookingDetailPage() {
             'IN_PROGRESS' ||
             booking.status ===
               'COMPLETED') && (
-            <section className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-[28px] bg-white shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
               <div className="border-b border-purple-50 bg-linear-to-r from-purple-50 to-white px-5 py-5 sm:px-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
@@ -1246,7 +1252,7 @@ export default function OwnerBookingDetailPage() {
 
           {booking.status ===
             'COMPLETED' && (
-            <section className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-[28px] bg-white shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
               {/* HEADER */}
 
               <div className="border-b border-purple-50 bg-linear-to-r from-purple-50 to-white px-5 py-5 sm:px-6">
@@ -1625,7 +1631,7 @@ export default function OwnerBookingDetailPage() {
         <aside className="space-y-5">
           {/* STATUS */}
 
-          <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+          <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] lg:sticky lg:top-28">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
                 <Clock3 className="h-4 w-4" />
@@ -1720,7 +1726,7 @@ export default function OwnerBookingDetailPage() {
                       `/owner/bookings/${booking.id}/payment`
                     )
                   }
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-sm font-black text-white transition hover:bg-purple-700"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] px-4 py-3 text-sm font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700"
                 >
                   <ReceiptText className="h-4 w-4" />
 
@@ -1851,6 +1857,7 @@ export default function OwnerBookingDetailPage() {
             </div>
           </section>
         </aside>
+      </div>
       </div>
     </main>
   );
@@ -2050,7 +2057,7 @@ function InfoCard({
     string;
 }) {
   return (
-    <div className="rounded-2xl border border-purple-100 bg-[#FAF7FE] p-4">
+    <div className="rounded-[20px] bg-[#F8F4FF] p-4">
       <div className="flex items-center gap-2 text-purple-600">
         {
           icon

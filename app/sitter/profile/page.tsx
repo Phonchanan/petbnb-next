@@ -25,6 +25,7 @@ import {
   Home,
   ImagePlus,
   KeyRound,
+  Landmark,
   Loader2,
   Mail,
   MapPin,
@@ -46,6 +47,10 @@ import {
   SitterPlaceImageService,
 } from '@/lib/supabase/sitterPlaceImageService';
 
+import {
+  PayoutAccountService,
+} from '@/lib/supabase/payoutAccountService';
+
 /* =========================================================
  * CONFIG
  * ======================================================= */
@@ -55,6 +60,16 @@ const PROFILE_IMAGE_BUCKET =
 
 const MAX_AVATAR_SIZE =
   5 * 1024 * 1024;
+
+const THAI_BANKS = [
+  { code: 'KBANK', name: 'ธนาคารกสิกรไทย' },
+  { code: 'SCB', name: 'ธนาคารไทยพาณิชย์' },
+  { code: 'KTB', name: 'ธนาคารกรุงไทย' },
+  { code: 'BBL', name: 'ธนาคารกรุงเทพ' },
+  { code: 'BAY', name: 'ธนาคารกรุงศรีอยุธยา' },
+  { code: 'TTB', name: 'ธนาคารทหารไทยธนชาต' },
+  { code: 'GSB', name: 'ธนาคารออมสิน' },
+] as const;
 
 /* =========================================================
  * DISTRICTS
@@ -294,6 +309,15 @@ export default function SitterProfilePage() {
     setSpecialty,
   ] =
     useState('');
+
+  /* =======================================================
+   * PAYOUT ACCOUNT (DEMO)
+   * ===================================================== */
+
+  const [bankCode, setBankCode] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountLast4, setAccountLast4] = useState('');
+  const [savingPayout, setSavingPayout] = useState(false);
 
   /* =======================================================
    * LOADING STATES
@@ -550,6 +574,23 @@ export default function SitterProfilePage() {
             sitter.specialty ??
               ''
           );
+
+          const payoutAccount =
+            await PayoutAccountService.getBySitterId(
+              sitter.id
+            );
+
+          if (payoutAccount) {
+            setBankCode(
+              payoutAccount.bank_code
+            );
+            setAccountName(
+              payoutAccount.account_name
+            );
+            setAccountLast4(
+              payoutAccount.account_last4
+            );
+          }
 
           /* ===============================================
            * LOCATIONS
@@ -1045,6 +1086,54 @@ export default function SitterProfilePage() {
         savingProfile,
       ]
     );
+
+  const savePayoutAccount =
+    async () => {
+      if (!profile || savingPayout) {
+        return;
+      }
+
+      const selectedBank =
+        THAI_BANKS.find(
+          (bank) => bank.code === bankCode
+        );
+
+      if (!selectedBank) {
+        setError('กรุณาเลือกธนาคาร');
+        return;
+      }
+
+      try {
+        setSavingPayout(true);
+        setError('');
+        setMessage('');
+
+        await PayoutAccountService.save({
+          sitterId: profile.id,
+          bankCode: selectedBank.code,
+          bankName: selectedBank.name,
+          accountName,
+          accountLast4,
+        });
+
+        setMessage(
+          'บันทึกบัญชีรับรายได้จำลองเรียบร้อยแล้ว'
+        );
+      } catch (err) {
+        console.error(
+          'SAVE PAYOUT ACCOUNT ERROR:',
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถบันทึกบัญชีรับรายได้ได้'
+        );
+      } finally {
+        setSavingPayout(false);
+      }
+    };
 
   const handleSaveOnEnter = (
     event:
@@ -1920,6 +2009,113 @@ export default function SitterProfilePage() {
           <p className="mt-3 text-[9px] text-slate-400">
             เลือกหลายรูปพร้อมกันได้ • สูงสุด 5 รูป • ไม่เกิน 5 MB ต่อรูป
           </p>
+        </section>
+
+        {/* =================================================
+         * PAYOUT ACCOUNT (DEMO)
+         * =============================================== */}
+
+        <section className="mt-5 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <Landmark className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-500">
+                Payout Account
+              </p>
+              <h2 className="mt-1 text-base font-black text-purple-950">
+                บัญชีรับรายได้จำลอง
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                ใช้ประกอบการสาธิตขั้นตอนดำเนินการรายได้เท่านั้น ไม่มีการโอนเงินจริง
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-[10px] font-black text-slate-500">
+                ธนาคาร
+              </label>
+              <select
+                value={bankCode}
+                onChange={(event) =>
+                  setBankCode(event.target.value)
+                }
+                className="input-style"
+              >
+                <option value="">เลือกธนาคาร</option>
+                {THAI_BANKS.map((bank) => (
+                  <option key={bank.code} value={bank.code}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-black text-slate-500">
+                ชื่อบัญชี
+              </label>
+              <input
+                type="text"
+                value={accountName}
+                onChange={(event) =>
+                  setAccountName(event.target.value)
+                }
+                placeholder="ชื่อบัญชีตัวอย่าง"
+                className="input-style"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-black text-slate-500">
+                เลขท้ายบัญชี 4 หลัก
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={accountLast4}
+                onChange={(event) =>
+                  setAccountLast4(
+                    event.target.value
+                      .replace(/\D/g, '')
+                      .slice(0, 4)
+                  )
+                }
+                placeholder="1234"
+                className="input-style"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 rounded-[22px] bg-emerald-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black text-emerald-900">
+                บัญชีปลายทาง: {accountLast4 ? `•••• ${accountLast4}` : 'ยังไม่ได้ตั้งค่า'}
+              </p>
+              <p className="mt-1 text-[9px] text-emerald-700/70">
+                ระบบจัดเก็บเฉพาะเลขท้าย 4 หลัก ไม่จัดเก็บเลขบัญชีเต็ม
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={savingPayout}
+              onClick={() => void savePayoutAccount()}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-[11px] font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingPayout ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {savingPayout ? 'กำลังบันทึก...' : 'บันทึกบัญชีรับรายได้'}
+            </button>
+          </div>
         </section>
 
         {/* =================================================

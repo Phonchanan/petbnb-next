@@ -11,10 +11,12 @@ import {
 } from 'next/navigation';
 
 import {
+  ArrowLeft,
   CheckCircle2,
   Loader2,
   QrCode,
   ReceiptText,
+  ShieldCheck,
 } from 'lucide-react';
 
 import {
@@ -236,32 +238,36 @@ export default function OwnerPaymentPage() {
    * ===================================================== */
 
   return (
-    <main className="min-h-screen bg-[#FAF8FE] px-4 py-10">
-      <div className="mx-auto max-w-2xl">
-        {/* HEADER */}
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto max-w-3xl px-4 py-7 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          onClick={() => router.push(`/owner/bookings/${booking.id}`)}
+          className="mb-5 inline-flex items-center gap-2 text-xs font-black text-purple-600 transition hover:text-purple-800"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          กลับไปหน้ารายละเอียดการจอง
+        </button>
 
-        <div className="mb-6 text-center">
-          <p className="text-sm font-bold text-purple-600">
+        <section className="relative mb-6 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-7">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+          <p className="relative text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">
             PetBnB Payment
           </p>
-
-          <h1 className="mt-2 text-3xl font-black text-purple-950">
-            การชำระเงิน
+          <h1 className="relative mt-2 text-2xl font-black tracking-tight text-purple-950 sm:text-3xl">
+            {paid ? 'ชำระเงินสำเร็จ' : 'ชำระค่าบริการ'}
           </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            รหัสการจอง{' '}
-            {booking.booking_code ||
-              booking.id}
+          <p className="relative mt-2 text-sm font-medium text-purple-950/60">
+            การจอง {booking.booking_code || booking.id}
           </p>
-        </div>
+        </section>
 
         {/* PAYMENT CARD */}
 
-        <div className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm">
-          <div className="border-b border-purple-50 p-6">
+        <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
+          <div className="border-b border-purple-100/70 p-5 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F1E8FF] text-purple-600">
                 <ReceiptText className="h-5 w-5" />
               </div>
 
@@ -271,16 +277,16 @@ export default function OwnerPaymentPage() {
                 </p>
 
                 <p className="text-xs text-slate-400">
-                  PromptPay QR Code
+                  {paid ? 'บันทึกรายการเรียบร้อยแล้ว' : 'ชำระผ่าน PromptPay QR Code'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-5 sm:p-6">
             {/* AMOUNT */}
 
-            <div className="rounded-2xl bg-purple-50/70 p-5 text-center">
+            <div className="rounded-[22px] bg-[#F8F4FF] p-5 text-center">
               <p className="text-xs font-semibold text-slate-500">
                 ยอดชำระทั้งหมด
               </p>
@@ -298,32 +304,45 @@ export default function OwnerPaymentPage() {
               <>
                 {/* DEMO QR */}
 
-                <div className="mt-7 flex flex-col items-center">
-                  <div className="flex h-56 w-56 items-center justify-center rounded-3xl border-2 border-dashed border-purple-200 bg-white">
+                <div className="mt-6 grid gap-5 md:grid-cols-[1fr_240px] md:items-center">
+                  <div>
+                    <p className="text-sm font-black text-purple-950">
+                      ขั้นตอนการชำระเงิน
+                    </p>
+                    <div className="mt-3 space-y-2.5">
+                      {[
+                        'ตรวจสอบยอดชำระให้ถูกต้อง',
+                        'สแกน QR Code ผ่านแอปธนาคาร',
+                        'สำหรับโครงงาน ให้กดปุ่มจำลองการชำระเงิน',
+                      ].map((step, index) => (
+                        <div key={step} className="flex items-center gap-3 rounded-2xl bg-[#FBF9FE] p-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[11px] font-black text-purple-700">
+                            {index + 1}
+                          </span>
+                          <span className="text-xs font-bold text-slate-600">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex h-56 w-full items-center justify-center rounded-[24px] border-2 border-dashed border-purple-200 bg-white">
                     <div className="text-center">
-                      <QrCode className="mx-auto h-28 w-28 text-purple-800" />
+                      <QrCode className="mx-auto h-24 w-24 text-purple-800" />
 
                       <p className="mt-3 text-xs font-bold text-purple-600">
                         DEMO QR PAYMENT
                       </p>
                     </div>
                   </div>
-
-                  <p className="mt-4 text-sm font-bold text-slate-700">
-                    สแกน QR Code เพื่อชำระเงิน
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-400">
-                    ระบบจำลองการชำระเงินสำหรับโครงงาน
-                  </p>
                 </div>
 
                 {/* STATUS */}
 
-                <div className="mt-6 rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                  <p className="text-sm font-bold text-amber-700">
-                    สถานะ: รอการชำระเงิน
+                <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-amber-50 p-4">
+                  <p className="text-xs font-black text-amber-800">
+                    สถานะการชำระเงิน
                   </p>
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-700">รอชำระเงิน</span>
                 </div>
 
                 {error && (
@@ -343,7 +362,7 @@ export default function OwnerPaymentPage() {
                   onClick={
                     handlePayment
                   }
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3.5 text-sm font-black text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] px-5 py-3.5 text-sm font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {paying ? (
                     <>
@@ -353,7 +372,7 @@ export default function OwnerPaymentPage() {
                   ) : (
                     <>
                       <QrCode className="h-4 w-4" />
-                      จำลองการชำระเงินสำเร็จ
+                      ยืนยันการชำระเงิน (โหมดจำลอง)
                     </>
                   )}
                 </button>
@@ -370,11 +389,11 @@ export default function OwnerPaymentPage() {
                   ชำระเงินสำเร็จ
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  ระบบบันทึกและคุ้มครองยอดชำระไว้จนกว่าการดูแลจะเสร็จสิ้น
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                  ระบบบันทึกยอดชำระและพักยอดไว้ จนกว่าการให้บริการจะเสร็จสิ้น
                 </p>
 
-                <div className="mt-6 space-y-3 rounded-2xl bg-slate-50 p-5 text-left text-sm">
+                <div className="mt-6 space-y-3 rounded-[22px] bg-[#F8F4FF] p-5 text-left text-sm">
                   <div className="flex justify-between gap-4">
                     <span className="text-slate-500">
                       ยอดชำระ
@@ -387,31 +406,7 @@ export default function OwnerPaymentPage() {
                     </span>
                   </div>
 
-                  <div className="flex justify-between gap-4">
-                    <span className="text-slate-500">
-                      ค่าคอมมิชชัน 10%
-                    </span>
-
-                    <span className="font-bold text-rose-600">
-                      {formatPaymentAmount(
-                        payment?.commission_fee
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <span className="text-slate-500">
-                      รายได้สุทธิผู้รับฝาก
-                    </span>
-
-                    <span className="font-black text-emerald-700">
-                      {formatPaymentAmount(
-                        payment?.net_amount
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
+                  <div className="flex justify-between gap-4 border-t border-purple-100 pt-3">
                     <span className="text-slate-500">
                       การคุ้มครองยอดชำระ
                     </span>
@@ -419,7 +414,7 @@ export default function OwnerPaymentPage() {
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-700">
                       {payment?.escrow_status ===
                       'HELD'
-                        ? 'คุ้มครองยอดแล้ว'
+                        ? 'กำลังพักยอด'
                         : payment?.escrow_status ||
                           '-'}
                     </span>
@@ -450,14 +445,14 @@ export default function OwnerPaymentPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-left">
-                  <p className="text-xs font-black text-amber-800">
-                    การชำระเงินได้รับการคุ้มครอง
-                  </p>
-
-                  <p className="mt-1 text-xs leading-5 text-amber-700">
-                    ระบบจะดำเนินการด้านการชำระเงินอัตโนมัติ หลังผู้รับฝากแจ้งจบงานและเจ้าของยืนยันว่าได้รับสัตว์เลี้ยงกลับเรียบร้อยแล้ว
-                  </p>
+                <div className="mt-4 flex gap-3 rounded-[22px] bg-emerald-50 p-4 text-left">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-black text-emerald-800">ระบบพักยอดอัตโนมัติ</p>
+                    <p className="mt-1 text-xs leading-5 text-emerald-700">
+                      เมื่อผู้รับฝากแจ้งจบงาน ระบบจะดำเนินการปล่อยยอดตามขั้นตอนที่กำหนดโดยอัตโนมัติ
+                    </p>
+                  </div>
                 </div>
 
                 <button
@@ -467,7 +462,7 @@ export default function OwnerPaymentPage() {
                       '/owner/bookings'
                     )
                   }
-                  className="mt-6 w-full rounded-2xl bg-purple-600 px-5 py-3.5 text-sm font-black text-white hover:bg-purple-700"
+                  className="mt-6 w-full rounded-2xl bg-[#7C3AED] px-5 py-3.5 text-sm font-black text-white transition hover:bg-purple-700"
                 >
                   กลับไปยังรายการจอง
                 </button>

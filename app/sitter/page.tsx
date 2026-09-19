@@ -648,24 +648,21 @@ export default function SitterDashboardPage() {
       1
     );
 
-  const primaryJob =
-    currentJobs.find(
-      (job) =>
-        job.status ===
-        'IN_PROGRESS'
-    ) ??
-    currentJobs.find(
-      (job) =>
-        job.status ===
-        'CONFIRMED'
-    ) ??
-    currentJobs.find(
-      (job) =>
-        job.status ===
-        'PENDING'
-    ) ??
-    currentJobs[0] ??
-    null;
+  const latestJobs =
+    [...currentJobs]
+      .sort((a, b) => {
+        const priority: Record<string, number> = {
+          IN_PROGRESS: 0,
+          CONFIRMED: 1,
+          PENDING: 2,
+        };
+
+        return (
+          (priority[a.status] ?? 99) -
+          (priority[b.status] ?? 99)
+        );
+      })
+      .slice(0, 3);
 
   /* =======================================================
    * UI
@@ -893,29 +890,52 @@ export default function SitterDashboardPage() {
                   </h2>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push(
-                      '/sitter/bookings'
-                    )
-                  }
-                  className="inline-flex items-center gap-1 text-[10px] font-black text-purple-600"
-                >
-                  ดูทั้งหมด
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[9px] font-black text-purple-600">
+                    {latestJobs.length} รายการล่าสุด
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        '/sitter/bookings'
+                      )
+                    }
+                    className="inline-flex items-center gap-1 text-[10px] font-black text-purple-600"
+                  >
+                    ดูทั้งหมด
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {primaryJob ? (
-                <DashboardJobCard
-                  job={primaryJob}
-                  onOpen={() =>
-                    router.push(
-                      `/sitter/bookings/${primaryJob.id}`
-                    )
-                  }
-                />
+              {latestJobs.length > 0 ? (
+                <div className="mt-5 space-y-3">
+                  {latestJobs.map((job) => (
+                    <CurrentJobCard
+                      key={job.id}
+                      job={job}
+                      onOpen={() =>
+                        router.push(
+                          `/sitter/bookings/${job.id}`
+                        )
+                      }
+                    />
+                  ))}
+
+                  {currentJobs.length > latestJobs.length && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push('/sitter/bookings')
+                      }
+                      className="w-full rounded-2xl bg-purple-50 py-2.5 text-[10px] font-black text-purple-600 transition hover:bg-purple-100"
+                    >
+                      ดูงานอื่นทั้งหมด
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="mt-5 flex min-h-48 flex-col items-center justify-center rounded-[24px] bg-[#F8F4FF] px-5 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-purple-300 shadow-sm">

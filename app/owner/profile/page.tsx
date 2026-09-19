@@ -672,13 +672,15 @@ export default function OwnerProfilePage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-75 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
           <p className="text-xs font-medium text-slate-400">
             กำลังโหลดข้อมูลโปรไฟล์...
           </p>
+        </div>
         </div>
       </main>
     );
@@ -689,18 +691,20 @@ export default function OwnerProfilePage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-      <section className="mb-6 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
+      <section className="relative mb-6 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-7">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+        <div className="relative inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">
           <UserRound className="h-3.5 w-3.5" />
           My Profile
         </div>
 
-        <h1 className="mt-3 text-2xl font-black text-[#2E1065]">
+        <h1 className="relative mt-3 text-2xl font-black tracking-tight text-[#2E1065] sm:text-3xl">
           โปรไฟล์ของฉัน
         </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="relative mt-2 max-w-xl text-sm font-medium leading-6 text-purple-950/60">
           จัดการข้อมูลส่วนตัวและรูปโปรไฟล์สำหรับบัญชีเจ้าของสัตว์เลี้ยง
         </p>
       </section>
@@ -731,10 +735,10 @@ export default function OwnerProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* LEFT PROFILE CARD */}
-        <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
+        <section className="rounded-[28px] bg-white p-6 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
           <div className="text-center">
             <div className="relative mx-auto h-32 w-32">
-              <div className="h-32 w-32 overflow-hidden rounded-4xl border-4 border-purple-50 bg-purple-100 shadow-md">
+              <div className="h-32 w-32 overflow-hidden rounded-[30px] border-4 border-white bg-purple-100 shadow-[0_10px_30px_rgba(76,29,149,0.12)]">
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
@@ -748,7 +752,7 @@ export default function OwnerProfilePage() {
                 )}
               </div>
 
-              <label className="absolute -bottom-2 -right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-purple-600 text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700">
+              <label className="absolute -bottom-2 -right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-[#7C3AED] text-white shadow-[0_8px_18px_rgba(124,58,237,0.22)] transition hover:bg-purple-700">
                 <Camera className="h-4 w-4" />
 
                 <input
@@ -771,7 +775,7 @@ export default function OwnerProfilePage() {
               เจ้าของสัตว์เลี้ยง
             </p>
 
-            <div className="mt-5 space-y-3 rounded-2xl bg-[#FAF7FE] p-4 text-left">
+            <div className="mt-5 space-y-3 rounded-[20px] bg-[#F8F4FF] p-4 text-left">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
                   <Mail className="h-4 w-4" />
@@ -809,15 +813,16 @@ export default function OwnerProfilePage() {
         </section>
 
         {/* RIGHT FORM */}
-        <section className="rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm lg:col-span-2">
+        <section className="rounded-[28px] bg-white p-6 shadow-[0_8px_30px_rgba(76,29,149,0.05)] lg:col-span-2">
           <div className="mb-5">
             <h2 className="font-black text-purple-950">
               แก้ไขข้อมูลส่วนตัว
             </h2>
 
-            <p className="mt-1 text-xs text-slate-400">
-              ระบบจะบันทึกการเปลี่ยนแปลงให้อัตโนมัติ
-            </p>
+            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+              <CheckCircle2 className="h-3 w-3" />
+              ระบบบันทึกการเปลี่ยนแปลงให้อัตโนมัติ
+            </div>
           </div>
 
           <div className="space-y-5">
@@ -914,7 +919,7 @@ export default function OwnerProfilePage() {
       {/* ACCOUNT SETTINGS */}
       <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-2">
         {/* Notification settings */}
-        <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <section className="flex h-full flex-col rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
@@ -974,7 +979,7 @@ export default function OwnerProfilePage() {
         </section>
 
         {/* Password */}
-        <section className="flex h-full flex-col rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+        <section className="flex h-full flex-col rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-100 text-pink-600">
               <KeyRound className="h-5 w-5" />
@@ -1033,7 +1038,7 @@ export default function OwnerProfilePage() {
               <button
                 type="submit"
                 disabled={changingPassword}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] px-5 py-3 text-xs font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {changingPassword ? (
                   <>
@@ -1050,6 +1055,7 @@ export default function OwnerProfilePage() {
             </div>
           </form>
         </section>
+      </div>
       </div>
     </main>
   );
@@ -1068,7 +1074,7 @@ function NotificationToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-purple-100 bg-[#FAF8FE] px-4 py-3 transition hover:border-purple-200">
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[20px] bg-[#F8F4FF] px-4 py-3 transition hover:bg-purple-50">
       <div className="min-w-0">
         <div className="text-xs font-bold text-slate-800">
           {title}

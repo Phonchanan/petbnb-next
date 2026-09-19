@@ -1184,18 +1184,20 @@ export default function OwnerBookPage() {
          * HEADER
          * =============================================== */}
 
-        <section className="mt-5 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
-          <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
+        <section className="relative mt-5 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-6 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-7">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/40 blur-3xl" />
+
+          <div className="relative inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-purple-700">
             <CalendarDays className="h-4 w-4" />
 
             Booking
           </div>
 
-          <h1 className="mt-3 text-2xl font-black text-purple-950 sm:text-3xl">
+          <h1 className="relative mt-3 text-2xl font-black text-purple-950 sm:text-3xl">
             จองบริการฝากสัตว์เลี้ยง
           </h1>
 
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="relative mt-2 max-w-2xl text-sm leading-6 text-purple-900/60">
             เลือกสัตว์เลี้ยงและวันที่ต้องการฝาก
             จากนั้นตรวจสอบรายละเอียดก่อนส่งคำขอไปยัง Sitter
           </p>
@@ -1211,7 +1213,7 @@ export default function OwnerBookPage() {
              * SITTER
              * ============================================= */}
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="text-sm font-black text-purple-950">
                 ผู้รับฝาก
               </h2>
@@ -1255,12 +1257,12 @@ export default function OwnerBookPage() {
              * SERVICE
              * ============================================= */}
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="text-sm font-black text-purple-950">
                 บริการที่เลือก
               </h2>
 
-              <div className="mt-4 rounded-2xl bg-[#FAF8FE] p-4">
+              <div className="mt-4 rounded-[22px] bg-[#F8F4FF] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <h3 className="font-black text-purple-950">
@@ -1305,7 +1307,7 @@ export default function OwnerBookPage() {
              * PET
              * ============================================= */}
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="text-sm font-black text-purple-950">
                 เลือกสัตว์เลี้ยง
               </h2>
@@ -1418,7 +1420,7 @@ export default function OwnerBookPage() {
              * DATES
              * ============================================= */}
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="text-sm font-black text-purple-950">
                 วันที่ฝากเลี้ยง
               </h2>
@@ -1515,7 +1517,7 @@ export default function OwnerBookPage() {
              * NOTE
              * ============================================= */}
 
-            <section className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="text-sm font-black text-purple-950">
                 หมายเหตุถึง Sitter
               </h2>
@@ -1560,7 +1562,7 @@ export default function OwnerBookPage() {
            * =============================================== */}
 
           <aside>
-            <div className="sticky top-24 rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm">
+            <div className="sticky top-28 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(76,29,149,0.05)] sm:p-6">
               <h2 className="font-black text-purple-950">
                 สรุปการจอง
               </h2>

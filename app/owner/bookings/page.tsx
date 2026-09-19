@@ -278,13 +278,15 @@ export default function OwnerBookingsPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-80 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
           <p className="text-xs font-medium text-slate-400">
             กำลังโหลดรายการจอง...
           </p>
+        </div>
         </div>
       </main>
     );
@@ -299,23 +301,26 @@ export default function OwnerBookingsPage() {
    * ===================================================== */
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
       {/* =================================================
        * HEADER
        * =============================================== */}
 
-      <section className="mb-6 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+      <section className="relative mb-6 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:p-7">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+
+        <div className="relative inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">
           <CalendarDays className="h-3.5 w-3.5" />
 
           My Bookings
         </div>
 
-        <h1 className="mt-3 text-2xl font-black text-[#2E1065]">
+        <h1 className="relative mt-3 text-2xl font-black tracking-tight text-[#2E1065] sm:text-3xl">
           การจองของฉัน
         </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="relative mt-2 max-w-2xl text-sm font-medium leading-6 text-purple-950/60">
           ตรวจสอบสถานะ วันที่ ราคา
           และรายละเอียดการฝากสัตว์เลี้ยง
         </p>
@@ -347,7 +352,7 @@ export default function OwnerBookingsPage() {
        * FILTER
        * =============================================== */}
 
-      <section className="mb-5 flex gap-2 overflow-x-auto pb-1">
+      <section className="mb-5 flex gap-2 overflow-x-auto rounded-[22px] bg-white p-2 shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
         <FilterButton
           label="ทั้งหมด"
           active={
@@ -446,7 +451,7 @@ export default function OwnerBookingsPage() {
 
       {filteredBookings.length ===
       0 ? (
-        <section className="rounded-[30px] border border-dashed border-purple-200 bg-white p-12 text-center">
+        <section className="rounded-[28px] bg-white p-12 text-center shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-purple-100 text-purple-600">
             <CalendarDays className="h-8 w-8" />
           </div>
@@ -481,7 +486,7 @@ export default function OwnerBookingsPage() {
                   key={
                     booking.id
                   }
-                  className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm"
+                  className="overflow-hidden rounded-[28px] bg-white shadow-[0_8px_30px_rgba(76,29,149,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(76,29,149,0.09)]"
                 >
                   {/* =========================================
                    * BOOKING BODY
@@ -630,7 +635,7 @@ export default function OwnerBookingsPage() {
                    * FOOTER
                    * ======================================= */}
 
-                  <div className="flex flex-col gap-3 border-t border-purple-50 bg-[#FAF7FE]/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 border-t border-purple-100/70 bg-[#FBF9FE] p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 text-[10px] text-slate-400">
                       <span className="font-bold">
                         Booking ID:{' '}
@@ -650,7 +655,7 @@ export default function OwnerBookingsPage() {
 
                       <Link
                         href={`/owner/bookings/${booking.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-purple-700"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#7C3AED] px-4 py-2.5 text-xs font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700"
                       >
                         <ReceiptText className="h-3.5 w-3.5" />
 
@@ -693,6 +698,7 @@ export default function OwnerBookingsPage() {
           )}
         </section>
       )}
+      </div>
     </main>
   );
 }
@@ -716,10 +722,10 @@ function FilterButton({
       onClick={
         onClick
       }
-      className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${
+      className={`shrink-0 rounded-[15px] px-4 py-2 text-[11px] font-black transition ${
         active
-          ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-          : 'border border-purple-100 bg-white text-purple-700 hover:bg-purple-50'
+          ? 'bg-[#7C3AED] text-white shadow-[0_7px_16px_rgba(124,58,237,0.18)]'
+          : 'text-slate-500 hover:bg-purple-50 hover:text-purple-700'
       }`}
     >
       {label}
@@ -742,7 +748,7 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-purple-100 bg-[#FAF7FE] p-3.5">
+    <div className="rounded-[20px] bg-[#F8F4FF] p-3.5">
       <div className="flex items-center gap-2 text-purple-600">
         {icon}
 

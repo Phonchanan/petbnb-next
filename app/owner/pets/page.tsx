@@ -598,7 +598,8 @@ export default function OwnerPetsPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="min-h-screen bg-[#FAF8FE]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex min-h-75 flex-col items-center justify-center gap-3">
           <Loader2 className="h-7 w-7 animate-spin text-purple-600" />
 
@@ -606,37 +607,45 @@ export default function OwnerPetsPage() {
             กำลังโหลดข้อมูลสัตว์เลี้ยง...
           </p>
         </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-      <section className="mb-6 flex flex-col gap-4 rounded-[30px] border border-purple-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-700">
+    <main className="min-h-screen bg-[#FAF8FE]">
+      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
+      <section className="relative mb-6 flex flex-col gap-5 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#EEDFFF] via-[#E8D8FF] to-[#DDC8FF] p-5 shadow-[0_12px_35px_rgba(109,40,217,0.10)] sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/35 blur-2xl" />
+        <div className="relative">
+          <div className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">
             <PawPrint className="h-3.5 w-3.5" />
             My Pets
           </div>
 
-          <h1 className="text-2xl font-black text-[#2E1065]">
+          <h1 className="text-2xl font-black tracking-tight text-[#2E1065] sm:text-3xl">
             สัตว์เลี้ยงของฉัน
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-purple-950/60">
             จัดการรูปภาพ อายุ สุขภาพ อาหาร
             พฤติกรรม และข้อมูลสำคัญของน้องๆ
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700"
-        >
-          <Plus className="h-4 w-4" />
-          เพิ่มสัตว์เลี้ยงใหม่
-        </button>
+        <div className="relative flex flex-col gap-2 sm:items-end">
+          <div className="text-xs font-bold text-purple-950/60">
+            มีข้อมูลสัตว์เลี้ยง {pets.length} ตัว
+          </div>
+          <button
+            type="button"
+            onClick={openAdd}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] px-5 py-3 text-sm font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4" />
+            เพิ่มสัตว์เลี้ยงใหม่
+          </button>
+        </div>
       </section>
 
       {message && (
@@ -653,7 +662,7 @@ export default function OwnerPetsPage() {
       )}
 
       {pets.length === 0 ? (
-        <section className="rounded-[30px] border border-dashed border-purple-200 bg-white p-12 text-center">
+        <section className="rounded-[28px] bg-white p-12 text-center shadow-[0_8px_30px_rgba(76,29,149,0.05)]">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-purple-100 text-purple-600">
             <PawPrint className="h-8 w-8" />
           </div>
@@ -669,7 +678,7 @@ export default function OwnerPetsPage() {
           <button
             type="button"
             onClick={openAdd}
-            className="mt-5 rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold text-white"
+            className="mt-5 rounded-2xl bg-[#7C3AED] px-5 py-2.5 text-xs font-black text-white"
           >
             + เพิ่มสัตว์เลี้ยง
           </button>
@@ -687,11 +696,11 @@ export default function OwnerPetsPage() {
             return (
               <article
                 key={pet.id}
-                className="overflow-hidden rounded-[28px] border border-purple-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="overflow-hidden rounded-[28px] bg-white shadow-[0_8px_30px_rgba(76,29,149,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(76,29,149,0.09)]"
               >
                 <div className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-3xl border border-purple-100 bg-purple-50 shadow-sm">
+                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[22px] bg-purple-50 shadow-sm">
                       {pet.photoUrl ? (
                         <img
                           src={pet.photoUrl}
@@ -760,7 +769,7 @@ export default function OwnerPetsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 space-y-2 rounded-2xl bg-[#FAF7FE] p-4 text-xs">
+                  <div className="mt-5 space-y-2 rounded-[20px] bg-[#F8F4FF] p-4 text-xs">
                     {pet.foodInfo && (
                       <PetDetail
                         label="อาหาร"
@@ -811,7 +820,7 @@ export default function OwnerPetsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 border-t border-purple-50 bg-[#FAF7FE]/60 p-4">
+                <div className="flex justify-end gap-2 border-t border-purple-100/70 bg-[#FBF9FE] p-4">
                   <button
                     type="button"
                     onClick={() =>
@@ -842,8 +851,8 @@ export default function OwnerPetsPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-purple-950/45 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[30px] border border-purple-100 bg-white shadow-2xl">
-            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-purple-100 bg-white/95 p-5 backdrop-blur">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[30px] bg-white shadow-[0_24px_80px_rgba(46,16,101,0.20)]">
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-purple-100/70 bg-white/95 p-5 backdrop-blur">
               <div>
                 <h2 className="font-black text-purple-950">
                   {editingPet
@@ -852,7 +861,7 @@ export default function OwnerPetsPage() {
                 </h2>
 
                 <p className="mt-0.5 text-xs text-slate-400">
-                  เพิ่มข้อมูลและรูปภาพของสัตว์เลี้ยง
+                  กรอกข้อมูลที่จำเป็นเพื่อช่วยให้ผู้รับฝากดูแลน้องได้ถูกต้อง
                 </p>
               </div>
 
@@ -870,9 +879,10 @@ export default function OwnerPetsPage() {
               className="space-y-5 p-5 sm:p-6"
             >
               <section>
-                <label className="mb-2 block text-xs font-bold text-purple-950">
-                  รูปสัตว์เลี้ยง
-                </label>
+                <div className="mb-3">
+                  <p className="text-sm font-black text-purple-950">รูปสัตว์เลี้ยง</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">ช่วยให้ผู้รับฝากจดจำน้องได้ง่ายขึ้น</p>
+                </div>
 
                 <div className="rounded-3xl border border-dashed border-purple-200 bg-[#FAF8FE] p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -943,6 +953,11 @@ export default function OwnerPetsPage() {
                 </div>
               </section>
 
+              <section className="rounded-[24px] bg-[#FBF9FE] p-4 sm:p-5">
+                <div className="mb-4">
+                  <h3 className="text-sm font-black text-purple-950">ข้อมูลทั่วไป</h3>
+                  <p className="mt-0.5 text-[10px] text-slate-400">ชื่อ ประเภท สายพันธุ์ อายุ และน้ำหนัก</p>
+                </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label="ชื่อสัตว์เลี้ยง *"
@@ -1059,11 +1074,13 @@ export default function OwnerPetsPage() {
                   step="0.01"
                 />
               </div>
+              </section>
 
-              <div className="border-t border-purple-100 pt-5">
-                <h3 className="mb-4 text-sm font-black text-purple-950">
-                  ข้อมูลการดูแล
-                </h3>
+              <section className="rounded-[24px] bg-[#FBF9FE] p-4 sm:p-5">
+                <div className="mb-4">
+                  <h3 className="text-sm font-black text-purple-950">การดูแลและสุขภาพ</h3>
+                  <p className="mt-0.5 text-[10px] text-slate-400">กรอกเฉพาะข้อมูลที่ผู้รับฝากจำเป็นต้องทราบ</p>
+                </div>
 
                 <div className="space-y-4">
                   <TextAreaField
@@ -1175,9 +1192,9 @@ export default function OwnerPetsPage() {
                     type="tel"
                   />
                 </div>
-              </div>
+              </section>
 
-              <div className="flex flex-wrap gap-4 rounded-2xl border border-purple-100 bg-purple-50/70 p-4">
+              <div className="flex flex-wrap gap-4 rounded-[20px] bg-[#F1E8FF] p-4">
                 <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-purple-950">
                   <input
                     type="checkbox"
@@ -1238,7 +1255,7 @@ export default function OwnerPetsPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-purple-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] py-3.5 text-sm font-black text-white shadow-[0_8px_18px_rgba(124,58,237,0.20)] transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? (
                     <>
@@ -1259,6 +1276,7 @@ export default function OwnerPetsPage() {
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }
@@ -1269,7 +1287,7 @@ function InfoBadge({
   children: React.ReactNode;
 }) {
   return (
-    <span className="rounded-xl border border-purple-100 bg-purple-50 px-2.5 py-1 text-[10px] font-bold text-purple-700">
+    <span className="rounded-xl bg-purple-50 px-2.5 py-1 text-[10px] font-bold text-purple-700">
       {children}
     </span>
   );
